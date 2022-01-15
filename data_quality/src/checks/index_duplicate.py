@@ -1,0 +1,66 @@
+import pandas as pd
+
+from data_quality.src.check import Check
+from data_quality.src.utils import _aggregate_sql_filter, _output_column_to_sql, _query_limit
+
+
+class IndexDuplicate(Check):
+
+    def __init__(self,
+                 table):
+        self.table = table
+        self.check_description = "Duplicated index"
+        self.index_col = table.index_column
+
+    def _get_number_ko_sql(self) -> int:
+        ignore_filters = [f"({self.index_col} is null) or (cast({self.index_col} as string) = '')",
+                          self.table.table_filter]
+        ignore_filters = _aggregate_sql_filter(ignore_filters)
+        query = f"""
+                SELECT 
+                    count(*) as n_rows,
+                    count(DISTINCT {self.index_col}) as n_distinct_index   
+                from {self.table.db_name}
+                {ignore_filters}
+                """
+        df = self.table.run_query(query)
+        n_not_null_index = df["n_rows"].values[0]
+        n_distinct_index = df["n_distinct_index"].values[0]
+        n_ok = n_distinct_index
+        n_ko = n_not_null_index - n_distinct_index
+        return n_ko
+
+    def _get_rows_ko_sql(self) -> pd.DataFrame:
+        ignore_filters = [f"({self.index_col} is null) or (cast({self.index_col} as string) = '')",
+                          self.table.table_filter]
+        ignore_filters = _aggregate_sql_filter(ignore_filters)
+        output_columns = _output_column_to_sql(self.table.output_columns)
+        sql_limit = _query_limit(self.table.max_rows)
+        query = f"""
+            SELECT
+                {output_columns}
+            FROM (
+                SELECT 
+                    *,
+                    count(*) OVER (PARTITION BY {self.index_col}) as n_distinct_index
+                from {self.table.db_name}
+                {ignore_filters}
+            ) a 
+            WHERE a.n_distinct_index > 1
+            {sql_limit}
+        """
+        df = self.table.run_query(query)
+        return df
+
+    def _get_rows_ko_dataframe(self) -> pd.DataFrame:
+        df = self.table.df
+        df = df[df[self.index_col].notnull() & (df[self.index_col].astype(str) != "")]
+        tag_count_index = "n_distinct_index"
+        df[tag_count_index] = df.groupby(self.index_col)[self.index_col].transform("count")
+        df = df[df[tag_count_index] > 1]
+        df.drop([tag_count_index], axis=1, inplace=True)
+        return df
+
+
+
+
