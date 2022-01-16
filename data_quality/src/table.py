@@ -13,6 +13,7 @@ from data_quality.src.checks.column_between_values import ColumnBetweenValues
 from data_quality.src.checks.column_between_dates import ColumnBetweenDates
 from data_quality.src.checks.dates_order import DatesOrder
 from data_quality.src.checks.values_order import ValuesOrder
+from data_quality.src.checks.values_in_list import ValuesInList
 
 
 class Table:
@@ -298,7 +299,28 @@ class Table:
         )
         return check.check(get_rows_flag=get_rows_flag)
 
-
+    @validate
+    def check_values_in_list(self,
+                             columns: Union[str, list],
+                             values_list: list,
+                             case_sensitive: bool = True,
+                             get_rows_flag: bool = False) -> Union[int, dict, None]:
+        if isinstance(columns, str):
+            check = ValuesInList(self,
+                                 columns,
+                                 values_list=values_list,
+                                 case_sensitive=case_sensitive)
+            result = check.check(get_rows_flag=get_rows_flag)
+        else:
+            result = {}
+            for col in columns:
+                check = ValuesInList(self,
+                                     col,
+                                     values_list=values_list,
+                                     case_sensitive=case_sensitive)
+                result = check.check(get_rows_flag=get_rows_flag)
+                result[col] = check.check(get_rows_flag=get_rows_flag)
+        return result
 
 
 

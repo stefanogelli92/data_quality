@@ -28,6 +28,7 @@ class TestCheckDataframe(unittest.TestCase):
         test_table.check_columns_between_dates("C", min_date="2020-01-01", max_date=datetime(2022, 1, 1))
         test_table.check_dates_order(["D", "E", "F"])
         test_table.check_values_order(["G", "H", "I"])
+        test_table.check_values_in_list("L", values_list=["A", "b"], case_sensitive=False)
         prova = ""
 
 

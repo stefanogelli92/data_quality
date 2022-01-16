@@ -83,7 +83,7 @@ class ColumnBetweenValues(Check):
             else:
                 df[tag_check] = df[tag_check] | (df[self.column_name] >= self.max_value)
         df = df[df[tag_check]]
-        df.drop(tag_check, axis=1, inplace=True)
+        df.drop([tag_check], axis=1, inplace=True)
         return df
 
 

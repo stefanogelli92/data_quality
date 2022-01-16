@@ -105,7 +105,7 @@ class ValuesOrder(Check):
                 else:
                     df[tag_check] = df[tag_check] | (df[self.ascending_columns[j]] > df[self.ascending_columns[i]])
         df = df[df[tag_check]]
-        df.drop(tag_check, axis=1, inplace=True)
+        df.drop([tag_check], axis=1, inplace=True)
         return df
 
 
