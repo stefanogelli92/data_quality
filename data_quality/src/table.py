@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 import pandas as pd
 
-from data_quality.src.utils import _clean_sql_filter, _aggregate_sql_filter
+from data_quality.src.utils import _clean_sql_filter, _aggregate_sql_filter, _output_column_to_sql
 from data_quality.src.checks.index_null import IndexNull
 from data_quality.src.checks.index_duplicate import IndexDuplicate
 from data_quality.src.checks.not_empthy_column import NotEmpthyColumn
@@ -54,7 +54,6 @@ class Table:
         self.passed_all_checks = True
         self.check_list = []
 
-
     @validate
     def set_table_filer(self, sql_filter: Optional[str]):
         self.table_filter = _clean_sql_filter(sql_filter)
@@ -90,6 +89,20 @@ class Table:
             columns_list.insert(0, self.index_column)
             columns_list = list(dict.fromkeys(columns_list))
         self.output_columns = columns_list
+
+    def download_table(self, columns_list: Union[List[str], str, None]):
+        if self.db_name is not None:
+            table_filter = _aggregate_sql_filter(self.table_filter)
+            output_columns_sql = _output_column_to_sql(columns_list)
+            query = f"""
+            SELECT 
+                {output_columns_sql}
+            from {self.db_name}
+            {table_filter}
+            """
+            df = self.run_query(query)
+            self.flag_dataframe = True
+            self.df = df
 
     @validate
     def get_number_of_rows(self) -> int:
