@@ -29,6 +29,7 @@ class TestCheckDataframe(unittest.TestCase):
         test_table.check_dates_order(["D", "E", "F"])
         test_table.check_values_order(["G", "H", "I"])
         test_table.check_values_in_list("L", values_list=["A", "b"], case_sensitive=False)
+        test_table.check_column_match_regex("L", regex="^[a-z]$")
         prova = ""
 
 
