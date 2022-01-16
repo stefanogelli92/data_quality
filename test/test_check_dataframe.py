@@ -22,10 +22,12 @@ class TestCheckDataframe(unittest.TestCase):
         test_table = dq_session.create_table_from_dataframe(df,
                                                             index_column="index",
                                                             not_empthy_columns=["A", "B"],
-                                                            datetime_columns="C")
+                                                            datetime_columns=["C", "D", "E", "F"])
         test_table.run_basic_check()
         test_table.check_columns_between_values("A", min_value=0, max_value=100)
         test_table.check_columns_between_dates("C", min_date="2020-01-01", max_date=datetime(2022, 1, 1))
+        test_table.check_dates_order(["D", "E", "F"])
+        test_table.check_values_order(["G", "H", "I"])
         prova = ""
 
 

@@ -11,6 +11,8 @@ from data_quality.src.checks.not_empthy_column import NotEmpthyColumn
 from data_quality.src.checks.datetime_format import DatetimeFormat
 from data_quality.src.checks.column_between_values import ColumnBetweenValues
 from data_quality.src.checks.column_between_dates import ColumnBetweenDates
+from data_quality.src.checks.dates_order import DatesOrder
+from data_quality.src.checks.values_order import ValuesOrder
 
 
 class Table:
@@ -258,6 +260,30 @@ class Table:
                                                 max_date=now,
                                                 max_included=include,
                                                 get_rows_flag=get_rows_flag)
+
+    @validate
+    def check_dates_order(self,
+                          ascending_columns: list,
+                          strictly_ascending: bool = False,
+                          get_rows_flag: bool = False) -> int:
+        check = DatesOrder(
+            self,
+            ascending_columns=ascending_columns,
+            strictly_ascending=strictly_ascending
+        )
+        return check.check(get_rows_flag=get_rows_flag)
+
+    @validate
+    def check_values_order(self,
+                           ascending_columns: list,
+                           strictly_ascending: bool = False,
+                           get_rows_flag: bool = False) -> int:
+        check = ValuesOrder(
+            self,
+            ascending_columns=ascending_columns,
+            strictly_ascending=strictly_ascending
+        )
+        return check.check(get_rows_flag=get_rows_flag)
 
 
 

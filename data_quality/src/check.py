@@ -62,3 +62,4 @@ class Check(ABC):
         self.ko_rows = df_ko
         self.flag_over_max_rows = flag_over_max_rows
         self.table.check_list.append(self)
+        return n_ko
