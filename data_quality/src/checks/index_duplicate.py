@@ -1,7 +1,8 @@
 import pandas as pd
 
 from data_quality.src.check import Check
-from data_quality.src.utils import _aggregate_sql_filter, _output_column_to_sql, _query_limit
+from data_quality.src.utils import _aggregate_sql_filter, _output_column_to_sql, _query_limit, \
+    _create_filter_columns_not_null
 
 
 class IndexDuplicate(Check):
@@ -13,7 +14,7 @@ class IndexDuplicate(Check):
         self.index_col = table.index_column
 
     def _get_number_ko_sql(self) -> int:
-        ignore_filters = [f"({self.index_col} is null) or (cast({self.index_col} as string) = '')",
+        ignore_filters = [_create_filter_columns_not_null(self.index_col),
                           self.table.table_filter]
         ignore_filters = _aggregate_sql_filter(ignore_filters)
         query = f"""

@@ -3,7 +3,8 @@ from typing import Union, List
 import pandas as pd
 
 from data_quality.src.check import Check
-from data_quality.src.utils import _aggregate_sql_filter, _output_column_to_sql, _query_limit
+from data_quality.src.utils import _aggregate_sql_filter, _output_column_to_sql, _query_limit, \
+    _create_filter_columns_not_null
 
 
 class Custom(Check):
@@ -12,15 +13,18 @@ class Custom(Check):
                  table,
                  negative_filter: str,
                  check_description: str,
+                 columns_not_null: Union[str, list] = None,
                  ignore_filters: Union[List[str], str] = None,
                  ):
         self.table = table
         self.check_description = check_description
         self.negative_filter = negative_filter
         self.ignore_filters = ignore_filters
+        self.columns_not_null = columns_not_null
 
     def _get_number_ko_sql(self) -> int:
         ignore_filters = self.ignore_filters
+        ignore_filters.append(_create_filter_columns_not_null(self.columns_not_null))
         ignore_filters.append(self.table.table_filter)
         ignore_filters = _aggregate_sql_filter(ignore_filters)
         query = f"""
@@ -46,10 +50,16 @@ class Custom(Check):
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
         ignore_filters = _aggregate_sql_filter(self.ignore_filters)
+        df = self.table.df
+        if isinstance(self.columns_not_null, str):
+            df = df[df[self.columns_not_null].notnull() & (df[self.columns_not_null].astype(str) != "")]
+        elif isinstance(self.columns_not_null, list):
+            for col in self.columns_not_null:
+                df = df[df[col].notnull() & (df[col].astype(str) != "")]
+
         if (ignore_filters is not None) and (len(ignore_filters)>0):
-            df = self.table.df.query(ignore_filters)
-        else:
-            df = self.table.df
+            df = df.query(ignore_filters)
+
         #n_tot = df.shape[0]
         df = df.query(self.negative_filter)
         return df

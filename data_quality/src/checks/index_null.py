@@ -2,6 +2,7 @@ import pandas as pd
 
 from data_quality.src.check import Check
 from data_quality.src.checks.custom import Custom
+from data_quality.src.utils import _create_filter_columns_not_null
 
 
 class IndexNull(Check):
@@ -11,7 +12,7 @@ class IndexNull(Check):
         self.table = table
         self.check_description = "Index null"
         self.index_column = table.index_column
-        negative_filter = f"({table.index_column} is null) or (cast({table.index_column} as string) = '')"
+        negative_filter = _create_filter_columns_not_null(self.index_column)
         self.custom_check = Custom(table,
                                    negative_filter,
                                    self.check_description)

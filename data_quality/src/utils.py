@@ -71,3 +71,14 @@ def _query_limit(value):
         max_rows_sql = ""
     return max_rows_sql
 
+
+def _create_filter_columns_not_null(columns):
+    if columns is not None:
+        if isinstance(columns, str):
+            columns = [columns]
+        filter_sql = [f"({col} is not null) AND (cast({col} as string) != '')" for col in columns]
+        filter_sql = " AND ".join(filter_sql)
+    else:
+        filter_sql = ""
+    return filter_sql
+

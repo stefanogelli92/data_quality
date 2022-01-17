@@ -3,6 +3,8 @@ import pandas as pd
 from data_quality.src.check import Check
 from data_quality.src.checks.custom import Custom
 # TODO formatting datetime custom
+from data_quality.src.utils import _create_filter_columns_not_null
+
 
 class DatetimeFormat(Check):
 
@@ -13,7 +15,7 @@ class DatetimeFormat(Check):
         self.check_description = f"Wrong Format in column {column_name}"
         self.column_name = column_name
         negative_filter = f"cast({column_name} as TIMESTAMP) is null"
-        ignore_filter = f"({column_name} is not null) and (cast({column_name} as string) != '')"
+        ignore_filter = _create_filter_columns_not_null(column_name)
         self.custom_check = Custom(table,
                                    negative_filter,
                                    self.check_description,

@@ -5,6 +5,7 @@ import re
 
 from data_quality.src.check import Check
 from data_quality.src.checks.custom import Custom
+from data_quality.src.utils import _create_filter_columns_not_null
 
 
 class MatchRegex(Check):
@@ -22,7 +23,7 @@ class MatchRegex(Check):
 
         self.check_description = f"Wrong format in column {column_name}"
 
-        ignore_filter = f"({column_name} is not null) and (cast({column_name} as string) != '')"
+        ignore_filter = _create_filter_columns_not_null(column_name)
 
         negative_filter = self._create_filter()
 

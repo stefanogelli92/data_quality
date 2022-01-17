@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 import pandas as pd
 
-from data_quality.src.utils import _clean_sql_filter, _aggregate_sql_filter, _output_column_to_sql
+from data_quality.src.utils import _clean_sql_filter, _aggregate_sql_filter, _output_column_to_sql, _query_limit
 from data_quality.src.checks.index_null import IndexNull
 from data_quality.src.checks.index_duplicate import IndexDuplicate
 from data_quality.src.checks.not_empthy_column import NotEmpthyColumn
@@ -15,6 +15,7 @@ from data_quality.src.checks.dates_order import DatesOrder
 from data_quality.src.checks.values_order import ValuesOrder
 from data_quality.src.checks.values_in_list import ValuesInList
 from data_quality.src.checks.match_regex import MatchRegex
+from data_quality.src.checks.custom import Custom
 
 
 class Table:
@@ -92,15 +93,19 @@ class Table:
             columns_list = list(dict.fromkeys(columns_list))
         self.output_columns = columns_list
 
-    def download_table(self, columns_list: Union[List[str], str, None]):
+    def download_table(self,
+                       columns_list: Union[List[str], str, None],
+                       n_max_rows_output: Union[int, None] = None):
         if self.db_name is not None:
             table_filter = _aggregate_sql_filter(self.table_filter)
             output_columns_sql = _output_column_to_sql(columns_list)
+            sql_limit = _query_limit(n_max_rows_output)
             query = f"""
             SELECT 
                 {output_columns_sql}
             from {self.db_name}
             {table_filter}
+            {sql_limit}
             """
             df = self.run_query(query)
             self.flag_dataframe = True
@@ -346,6 +351,25 @@ class Table:
                 result[col] = check.check(get_rows_flag=get_rows_flag)
         return result
 
+    @validate
+    def check_custom_condition(self,
+                               negative_condition: str,
+                               ignore_condition: str = None,
+                               check_description: str = None,
+                               columns_not_null: Union[str, list] = None,
+                               get_rows_flag: bool = False) -> int:
+
+        negative_condition = _clean_sql_filter(negative_condition)
+        if check_description is None:
+            check_description = "Custom condition failed"
+        check = Custom(
+            self,
+            negative_filter=negative_condition,
+            ignore_filters=ignore_condition,
+            columns_not_null=columns_not_null,
+            check_description=check_description
+        )
+        return check.check(get_rows_flag=get_rows_flag)
 
 
 

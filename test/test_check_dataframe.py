@@ -30,6 +30,7 @@ class TestCheckDataframe(unittest.TestCase):
         test_table.check_values_order(["G", "H", "I"])
         test_table.check_values_in_list("L", values_list=["A", "b"], case_sensitive=False)
         test_table.check_column_match_regex("L", regex="^[a-z]$")
+        test_table.check_custom_condition("(A == 13) & (B =='d')")
         prova = ""
 
 
