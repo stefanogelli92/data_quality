@@ -65,6 +65,7 @@ class Custom(Check):
         return df
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
+        # TODO rivedere query trovare una funzione che prenda codice sql
         sql_filter = self.ignore_filters
         sql_filter.append(self.table.table_filter)
         sql_filter.append(self.negative_filter)

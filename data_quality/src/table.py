@@ -40,7 +40,7 @@ class Table:
             self.flag_dataframe = False
             self.db_name = db_name
             self.run_query = run_query
-        self.output_name = output_name
+        self.output_name = output_name if output_name is not None else db_name
         self.index_column = index_column
         self.not_empthy_columns = None
         self.set_not_empthy_columns(not_empthy_columns)
