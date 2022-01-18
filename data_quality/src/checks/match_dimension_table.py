@@ -51,7 +51,7 @@ class MatchDImensionTable(Check):
                     on {join_keys}
                 GROUP BY check   
                 """
-        df = self.table.run_query(query)
+        df = self.table.source.run_query(query)
         n_ok = df.loc[df["check"] == "OK", "n_rows"].values
         if len(n_ok) > 0:
             n_ok = n_ok[0]
@@ -91,7 +91,7 @@ class MatchDImensionTable(Check):
                 {ignore_filters}
                 GROUP BY check   
                 """
-        df = self.table.run_query(query)
+        df = self.table.source.run_query(query)
         n_ok = df.loc[df["check"] == "OK", "n_rows"].values
         if len(n_ok) > 0:
             n_ok = n_ok[0]
@@ -130,7 +130,7 @@ class MatchDImensionTable(Check):
                 WHERE d.{self.primary_keys[0]} is null 
                 {sql_limit}
                 """
-        df = self.table.run_query(query)
+        df = self.table.source.run_query(query)
         return df
 
     def _get_rows_ko_sql_dimension_table_dataframe(self):
@@ -163,7 +163,7 @@ class MatchDImensionTable(Check):
                 {ignore_filters}
                 {sql_limit}
                 """
-        df = self.table.run_query(query)
+        df = self.table.source.run_query(query)
         return df
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:

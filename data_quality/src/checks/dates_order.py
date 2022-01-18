@@ -58,7 +58,7 @@ class DatesOrder(Check):
                     ) a
                 group by check
                 """
-        df = self.table.run_query(query)
+        df = self.table.source.run_query(query)
         n_ok = df.loc[df["check"] == "OK", "n_rows"].values
         if len(n_ok) > 0:
             n_ok = n_ok[0]
@@ -72,7 +72,7 @@ class DatesOrder(Check):
         return n_ko
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
-        ignore_filters = self.table.table_filter
+        ignore_filters = [self.table.table_filter]
         ignore_filters = _aggregate_sql_filter(ignore_filters)
         negative_filter = self._create_negative_filter()
         output_columns = _output_column_to_sql(self.table.output_columns)
@@ -91,7 +91,7 @@ class DatesOrder(Check):
         {negative_filter}
         {sql_limit}
         """
-        df = self.table.run_query(query)
+        df = self.table.source.run_query(query)
         return df
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:

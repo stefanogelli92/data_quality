@@ -82,3 +82,13 @@ def _create_filter_columns_not_null(columns):
         filter_sql = ""
     return filter_sql
 
+
+def _create_filter_columns_null(columns):
+    if columns is not None:
+        if isinstance(columns, str):
+            columns = [columns]
+        filter_sql = [f"({col} is null) OR (cast({col} as string) = '')" for col in columns]
+        filter_sql = " AND ".join(filter_sql)
+    else:
+        filter_sql = ""
+    return filter_sql

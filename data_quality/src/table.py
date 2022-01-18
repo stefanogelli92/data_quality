@@ -21,7 +21,7 @@ from data_quality.src.checks.custom import Custom
 class Table:
     def __init__(self,
                  db_name: str = None,
-                 run_query: Callable[[str], pd.DataFrame] = None,
+                 source=None,
                  df: pd.DataFrame = None,
                  index_column: str = None,
                  output_name: str = None,
@@ -39,7 +39,7 @@ class Table:
         if db_name is not None:
             self.flag_dataframe = False
             self.db_name = db_name
-            self.run_query = run_query
+            self.source = source
         self.output_name = output_name if output_name is not None else db_name
         self.index_column = index_column
         self.not_empthy_columns = None
@@ -107,7 +107,7 @@ class Table:
             {table_filter}
             {sql_limit}
             """
-            df = self.run_query(query)
+            df = self.source.run_query(query)
             self.flag_dataframe = True
             self.df = df
 
@@ -124,17 +124,23 @@ class Table:
             from {self.db_name}
             {filter_sql}
             """
-            result = self.run_query(query)["n_rows"].values[0]
+            result = self.source.run_query(query)["n_rows"].values[0]
         self.n_rows = result
         return result
 
     # Check methods
 
     @validate
-    def check_index_not_null(self, get_rows_flag: bool = False) -> Optional[int]:
+    def check_index_not_null(self,
+                             get_rows_flag: bool = False,
+                             flag_warning: bool = False,
+                             check_description: str = None) -> Optional[int]:
 
         if self.index_column is not None:
             check = IndexNull(self)
+            if check_description is not None:
+                check.set_check_description(check_description)
+            check.set_flag_warning(flag_warning)
             n_ko = check.check(get_rows_flag=get_rows_flag)
         else:
             # TODO Log unable to check index insert index before
@@ -143,10 +149,16 @@ class Table:
         return n_ko
 
     @validate
-    def check_duplicates_index(self, get_rows_flag: bool = False) -> Optional[int]:
+    def check_duplicates_index(self,
+                               get_rows_flag: bool = False,
+                               flag_warning: bool = False,
+                               check_description: str = None) -> Optional[int]:
 
         if self.index_column is not None:
             check = IndexDuplicate(self)
+            if check_description is not None:
+                check.set_check_description(check_description)
+            check.set_flag_warning(flag_warning)
             n_ko = check.check(get_rows_flag=get_rows_flag)
         else:
             # TODO Log unable to check index insert index before
@@ -157,7 +169,9 @@ class Table:
     @validate
     def check_not_empthy_column(self,
                                 columns: Union[str, list] = None,
-                                get_rows_flag: bool = False) -> Union[int, dict, None]:
+                                get_rows_flag: bool = False,
+                                flag_warning: bool = False,
+                                check_description: str = None) -> Union[int, dict, None]:
 
         if columns is None:
             if self.not_empthy_columns is None:
@@ -167,6 +181,9 @@ class Table:
                 result = {}
                 for col in self.not_empthy_columns:
                     check = NotEmpthyColumn(self, col)
+                    if check_description is not None:
+                        check.set_check_description(check_description)
+                    check.set_flag_warning(flag_warning)
                     result[col] = check.check(get_rows_flag=get_rows_flag)
         else:
             if isinstance(columns, str):
@@ -176,6 +193,9 @@ class Table:
                 result = {}
                 for col in columns:
                     check = NotEmpthyColumn(self, col)
+                    if check_description is not None:
+                        check.set_check_description(check_description)
+                    check.set_flag_warning(flag_warning)
                     result[col] = check.check(get_rows_flag=get_rows_flag)
 
         return result
@@ -183,7 +203,10 @@ class Table:
     @validate
     def check_datetime_format(self,
                               columns: Union[str, list] = None,
-                              get_rows_flag: bool = False) -> Union[int, dict, None]:
+                              format: str = None,
+                              get_rows_flag: bool = False,
+                              flag_warning: bool = False,
+                              check_description: str = None) -> Union[int, dict, None]:
 
         if columns is None:
             if self.datetime_columns is None:
@@ -192,27 +215,35 @@ class Table:
             else:
                 result = {}
                 for col in self.datetime_columns:
-                    check = DatetimeFormat(self, col)
+                    check = DatetimeFormat(self, format, col)
+                    if check_description is not None:
+                        check.set_check_description(check_description)
+                    check.set_flag_warning(flag_warning)
                     result[col] = check.check(get_rows_flag=get_rows_flag)
         else:
             if isinstance(columns, str):
-                check = DatetimeFormat(self, columns)
+                check = DatetimeFormat(self, format, columns)
                 result = check.check(get_rows_flag=get_rows_flag)
             else:
                 result = {}
                 for col in columns:
-                    check = DatetimeFormat(self, col)
+                    check = DatetimeFormat(self, format, col)
+                    if check_description is not None:
+                        check.set_check_description(check_description)
+                    check.set_flag_warning(flag_warning)
                     result[col] = check.check(get_rows_flag=get_rows_flag)
 
         return result
 
     @validate
     def run_basic_check(self,
-                        get_rows_flag: bool = False):
-        self.check_index_not_null(get_rows_flag=get_rows_flag)
-        self.check_duplicates_index(get_rows_flag=get_rows_flag)
-        self.check_not_empthy_column(get_rows_flag=get_rows_flag)
-        self.check_datetime_format(get_rows_flag=get_rows_flag)
+                        get_rows_flag: bool = False,
+                        flag_warning: bool = False,
+                        check_description: str = None):
+        self.check_index_not_null(get_rows_flag=get_rows_flag, flag_warning=flag_warning, check_description=check_description)
+        self.check_duplicates_index(get_rows_flag=get_rows_flag, flag_warning=flag_warning, check_description=check_description)
+        self.check_not_empthy_column(get_rows_flag=get_rows_flag, flag_warning=flag_warning, check_description=check_description)
+        self.check_datetime_format(get_rows_flag=get_rows_flag, flag_warning=flag_warning, check_description=check_description)
 
     @validate
     def check_columns_between_values(self,
@@ -221,7 +252,9 @@ class Table:
                                      max_value: float = None,
                                      min_included: bool = True,
                                      max_included: bool = True,
-                                     get_rows_flag: bool = False) -> Union[int, dict, None]:
+                                     get_rows_flag: bool = False,
+                                     flag_warning: bool = False,
+                                     check_description: str = None) -> Union[int, dict, None]:
         if isinstance(columns, str):
             check = ColumnBetweenValues(self,
                                         columns,
@@ -229,6 +262,9 @@ class Table:
                                         max_value=max_value,
                                         min_included=min_included,
                                         max_included=max_included)
+            if check_description is not None:
+                check.set_check_description(check_description)
+            check.set_flag_warning(flag_warning)
             result = check.check(get_rows_flag=get_rows_flag)
         else:
             result = {}
@@ -239,6 +275,9 @@ class Table:
                                             max_value=max_value,
                                             min_included=min_included,
                                             max_included=max_included)
+                if check_description is not None:
+                    check.set_check_description(check_description)
+                check.set_flag_warning(flag_warning)
                 result[col] = check.check(get_rows_flag=get_rows_flag)
         return result
 
@@ -249,7 +288,9 @@ class Table:
                                     max_date: Union[str, date, datetime] = None,
                                     min_included: bool = True,
                                     max_included: bool = True,
-                                    get_rows_flag: bool = False) -> Union[int, dict, None]:
+                                    get_rows_flag: bool = False,
+                                    flag_warning: bool = False,
+                                    check_description: str = None) -> Union[int, dict, None]:
         if isinstance(columns, str):
             check = ColumnBetweenDates(self,
                                        columns,
@@ -257,6 +298,9 @@ class Table:
                                        max_date=max_date,
                                        min_included=min_included,
                                        max_included=max_included)
+            if check_description is not None:
+                check.set_check_description(check_description)
+            check.set_flag_warning(flag_warning)
             result = check.check(get_rows_flag=get_rows_flag)
         else:
             result = {}
@@ -267,6 +311,9 @@ class Table:
                                            max_date=max_date,
                                            min_included=min_included,
                                            max_included=max_included)
+                if check_description is not None:
+                    check.set_check_description(check_description)
+                check.set_flag_warning(flag_warning)
                 result[col] = check.check(get_rows_flag=get_rows_flag)
         return result
 
@@ -274,35 +321,49 @@ class Table:
     def check_date_column_not_in_future(self,
                                         column: Union[str, list],
                                         include: bool = True,
-                                        get_rows_flag: bool = False) -> Union[int, dict, None]:
+                                        get_rows_flag: bool = False,
+                                        flag_warning: bool = False,
+                                        check_description: str = None) -> Union[int, dict, None]:
         now = datetime.now()
         return self.check_columns_between_dates(column,
                                                 max_date=now,
                                                 max_included=include,
-                                                get_rows_flag=get_rows_flag)
+                                                get_rows_flag=get_rows_flag,
+                                                flag_warning=flag_warning,
+                                                check_description=check_description)
 
     @validate
     def check_dates_order(self,
                           ascending_columns: list,
                           strictly_ascending: bool = False,
-                          get_rows_flag: bool = False) -> int:
+                          get_rows_flag: bool = False,
+                          flag_warning: bool = False,
+                          check_description: str = None) -> int:
         check = DatesOrder(
             self,
             ascending_columns=ascending_columns,
             strictly_ascending=strictly_ascending
         )
+        if check_description is not None:
+            check.set_check_description(check_description)
+        check.set_flag_warning(flag_warning)
         return check.check(get_rows_flag=get_rows_flag)
 
     @validate
     def check_values_order(self,
                            ascending_columns: list,
                            strictly_ascending: bool = False,
-                           get_rows_flag: bool = False) -> int:
+                           get_rows_flag: bool = False,
+                           flag_warning: bool = False,
+                           check_description: str = None) -> int:
         check = ValuesOrder(
             self,
             ascending_columns=ascending_columns,
             strictly_ascending=strictly_ascending
         )
+        if check_description is not None:
+            check.set_check_description(check_description)
+        check.set_flag_warning(flag_warning)
         return check.check(get_rows_flag=get_rows_flag)
 
     @validate
@@ -310,12 +371,17 @@ class Table:
                              columns: Union[str, list],
                              values_list: list,
                              case_sensitive: bool = True,
-                             get_rows_flag: bool = False) -> Union[int, dict, None]:
+                             get_rows_flag: bool = False,
+                             flag_warning: bool = False,
+                             check_description: str = None) -> Union[int, dict, None]:
         if isinstance(columns, str):
             check = ValuesInList(self,
                                  columns,
                                  values_list=values_list,
                                  case_sensitive=case_sensitive)
+            if check_description is not None:
+                check.set_check_description(check_description)
+            check.set_flag_warning(flag_warning)
             result = check.check(get_rows_flag=get_rows_flag)
         else:
             result = {}
@@ -325,6 +391,9 @@ class Table:
                                      values_list=values_list,
                                      case_sensitive=case_sensitive)
                 result = check.check(get_rows_flag=get_rows_flag)
+                if check_description is not None:
+                    check.set_check_description(check_description)
+                check.set_flag_warning(flag_warning)
                 result[col] = check.check(get_rows_flag=get_rows_flag)
         return result
 
@@ -333,12 +402,17 @@ class Table:
                                  columns: Union[str, list],
                                  regex: str,
                                  case_sensitive: bool = True,
-                                 get_rows_flag: bool = False) -> Union[int, dict, None]:
+                                 get_rows_flag: bool = False,
+                                 flag_warning: bool = False,
+                                 check_description: str = None) -> Union[int, dict, None]:
         if isinstance(columns, str):
             check = MatchRegex(self,
                                columns,
                                regex=regex,
                                case_sensitive=case_sensitive)
+            if check_description is not None:
+                check.set_check_description(check_description)
+            check.set_flag_warning(flag_warning)
             result = check.check(get_rows_flag=get_rows_flag)
         else:
             result = {}
@@ -347,7 +421,9 @@ class Table:
                                    col,
                                    regex=regex,
                                    case_sensitive=case_sensitive)
-                result = check.check(get_rows_flag=get_rows_flag)
+                if check_description is not None:
+                    check.set_check_description(check_description)
+                check.set_flag_warning(flag_warning)
                 result[col] = check.check(get_rows_flag=get_rows_flag)
         return result
 
@@ -357,7 +433,8 @@ class Table:
                                ignore_condition: str = None,
                                check_description: str = None,
                                columns_not_null: Union[str, list] = None,
-                               get_rows_flag: bool = False) -> int:
+                               get_rows_flag: bool = False,
+                               flag_warning: bool = False) -> int:
 
         negative_condition = _clean_sql_filter(negative_condition)
         if check_description is None:
@@ -369,6 +446,7 @@ class Table:
             columns_not_null=columns_not_null,
             check_description=check_description
         )
+        check.set_flag_warning(flag_warning)
         return check.check(get_rows_flag=get_rows_flag)
 
 

@@ -56,14 +56,27 @@ class TestCheckDataframe(unittest.TestCase):
                            check_names=False, check_dtype=False
                            )
 
-    def test_datetime_format(self):
+    def test_datetime_format1(self):
 
-        df = get_dataframe_for_test("datetime_format")
+        df = get_dataframe_for_test("datetime_format1")
 
         dq_session = DataQualitySession()
         test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
                                                             datetime_columns="A")
-        test_table.check_datetime_format()
+        test_table.check_datetime_format(format="%d-%m-%Y")
+        assert_frame_equal(test_table.check_list[0].ko_rows,
+                           df[df["check_description"].notnull()],
+                           check_names=False, check_dtype=False
+                           )
+
+    def test_datetime_format2(self):
+
+        df = get_dataframe_for_test("datetime_format2")
+
+        dq_session = DataQualitySession()
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            datetime_columns="A")
+        test_table.check_datetime_format(format="%Y-%m-%d")
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
                            check_names=False, check_dtype=False

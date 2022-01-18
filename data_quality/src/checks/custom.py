@@ -23,7 +23,7 @@ class Custom(Check):
         self.columns_not_null = columns_not_null
 
     def _get_number_ko_sql(self) -> int:
-        ignore_filters = self.ignore_filters
+        ignore_filters = [self.ignore_filters]
         ignore_filters.append(_create_filter_columns_not_null(self.columns_not_null))
         ignore_filters.append(self.table.table_filter)
         ignore_filters = _aggregate_sql_filter(ignore_filters)
@@ -35,7 +35,7 @@ class Custom(Check):
         {ignore_filters}
         group by check
         """
-        df = self.table.run_query(query)
+        df = self.table.source.run_query(query)
         n_ok = df.loc[df["check"] == "OK", "n_rows"].values
         if len(n_ok) > 0:
             n_ok = n_ok[0]
@@ -66,7 +66,7 @@ class Custom(Check):
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
         # TODO rivedere query trovare una funzione che prenda codice sql
-        sql_filter = self.ignore_filters
+        sql_filter = [self.ignore_filters]
         sql_filter.append(self.table.table_filter)
         sql_filter.append(self.negative_filter)
         sql_filter = _aggregate_sql_filter(sql_filter)
@@ -79,7 +79,7 @@ class Custom(Check):
         {sql_filter}
         {sql_limit}
         """
-        df = self.table.run_query(query)
+        df = self.table.source.run_query(query)
         return df
 
 

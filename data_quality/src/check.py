@@ -15,6 +15,7 @@ class Check(ABC):
         self.n_ko = None
         self.flag_over_max_rows = None
         self.ko_rows = None
+        self.warning = False
 
     @abstractmethod
     def _get_number_ko_sql(self) -> int:
@@ -27,6 +28,12 @@ class Check(ABC):
     @abstractmethod
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
         pass
+
+    def set_check_description(self, text: str):
+        self.check_description = text
+
+    def set_flag_warning(self, flag: bool):
+        self.warning = flag
 
     def check(self, get_rows_flag: bool = False):
         flag_over_max_rows = None

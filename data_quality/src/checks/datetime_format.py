@@ -10,18 +10,21 @@ class DatetimeFormat(Check):
 
     def __init__(self,
                  table,
+                 format: str,
                  column_name: str):
         self.table = table
+        self.format = format
         self.check_description = f"Wrong Format in column {column_name}"
         self.column_name = column_name
-        negative_filter = f"cast({column_name} as TIMESTAMP) is null"
-        ignore_filter = _create_filter_columns_not_null(column_name)
-        self.custom_check = Custom(table,
+        self.custom_check = None
+
+    def _get_number_ko_sql(self) -> int:
+        negative_filter = self.table.source.cast_datetime_sql(self.column_name, self.format) + " is null"
+        ignore_filter = _create_filter_columns_not_null(self.column_name)
+        self.custom_check = Custom(self.table,
                                    negative_filter,
                                    self.check_description,
                                    ignore_filters=ignore_filter)
-
-    def _get_number_ko_sql(self) -> int:
         return self.custom_check._get_number_ko_sql()
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
@@ -30,7 +33,10 @@ class DatetimeFormat(Check):
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
         df = self.table.df
         df = df[df[self.column_name].notnull() & (df[self.column_name].astype(str) != "")]
-        check_column = pd.to_datetime(df[self.column_name], errors="coerce")
+        if self.format is not None:
+            check_column = pd.to_datetime(df[self.column_name], format=self.format, errors="coerce")
+        else:
+            check_column = pd.to_datetime(df[self.column_name], errors="coerce")
         df = df[check_column.isna()]
         return df
 

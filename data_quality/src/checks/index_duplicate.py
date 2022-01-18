@@ -24,7 +24,7 @@ class IndexDuplicate(Check):
                 from {self.table.db_name}
                 {ignore_filters}
                 """
-        df = self.table.run_query(query)
+        df = self.table.source.run_query(query)
         n_not_null_index = df["n_rows"].values[0]
         n_distinct_index = df["n_distinct_index"].values[0]
         n_ok = n_distinct_index
@@ -32,25 +32,26 @@ class IndexDuplicate(Check):
         return n_ko
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
-        ignore_filters = [f"({self.index_col} is null) or (cast({self.index_col} as string) = '')",
+        ignore_filters = [_create_filter_columns_not_null(self.index_col),
                           self.table.table_filter]
         ignore_filters = _aggregate_sql_filter(ignore_filters)
         output_columns = _output_column_to_sql(self.table.output_columns)
         sql_limit = _query_limit(self.table.max_rows)
         query = f"""
             SELECT
-                {output_columns}
+                *
             FROM (
                 SELECT 
-                    *,
-                    count(*) OVER (PARTITION BY {self.index_col}) as n_distinct_index
+                    {output_columns},
+                    count(*) OVER (PARTITION BY cast({self.index_col} as string)) as n_distinct_index
                 from {self.table.db_name}
                 {ignore_filters}
             ) a 
             WHERE a.n_distinct_index > 1
             {sql_limit}
         """
-        df = self.table.run_query(query)
+        df = self.table.source.run_query(query)
+        df.drop(["n_distinct_index"], axis=1, inplace=True)
         return df
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:

@@ -56,7 +56,7 @@ class ValuesOrder(Check):
                     ) a
                 group by check
                 """
-        df = self.table.run_query(query)
+        df = self.table.source.run_query(query)
         n_ok = df.loc[df["check"] == "OK", "n_rows"].values
         if len(n_ok) > 0:
             n_ok = n_ok[0]
@@ -89,7 +89,7 @@ class ValuesOrder(Check):
         {negative_filter}
         {sql_limit}
         """
-        df = self.table.run_query(query)
+        df = self.table.source.run_query(query)
         return df
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
