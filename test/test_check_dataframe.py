@@ -62,8 +62,9 @@ class TestCheckDataframe(unittest.TestCase):
 
         dq_session = DataQualitySession()
         test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
-                                                            datetime_columns="A")
-        test_table.check_datetime_format(format="%d-%m-%Y")
+                                                            datetime_columns="A",
+                                                            datetime_formats="%d-%m-%Y")
+        test_table.check_datetime_format()
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
                            check_names=False, check_dtype=False
@@ -75,8 +76,9 @@ class TestCheckDataframe(unittest.TestCase):
 
         dq_session = DataQualitySession()
         test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
-                                                            datetime_columns="A")
-        test_table.check_datetime_format(format="%Y-%m-%d")
+                                                            datetime_columns="A",
+                                                            datetime_formats="%Y-%m-%d")
+        test_table.check_datetime_format()
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
                            check_names=False, check_dtype=False

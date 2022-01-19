@@ -26,7 +26,8 @@ class Table:
                  index_column: str = None,
                  output_name: str = None,
                  not_empthy_columns: Union[str, list] = None,
-                 datetime_columns: Union[str, list] = None,
+                 datetime_columns: Union[str, list, None] = None,
+                 datetime_formats: Union[str, list, None] = None,
                  table_filter: str = None,
                  output_columns: Union[List[str], str] = None,
                  n_max_rows_output: int = None
@@ -44,13 +45,14 @@ class Table:
         self.index_column = index_column
         self.not_empthy_columns = None
         self.set_not_empthy_columns(not_empthy_columns)
-        self.datetime_columns = None
-        self.set_datetime_columns(datetime_columns)
+        self.datetime_columns = {}
+        self.set_datetime_columns(datetime_columns, datetime_formats)
         self.table_filter = None
         self.set_table_filer(table_filter)
         self.output_columns = None
         self.set_output_columns(output_columns)
         self.max_rows = n_max_rows_output
+
         # Result parameters
         self.n_rows = None
         self.index_problem = False
@@ -78,11 +80,23 @@ class Table:
             columns_list = [columns_list]
         self.not_empthy_columns = columns_list
 
-    @validate
-    def set_datetime_columns(self, columns_list: Union[List[str], str, None]):
-        if isinstance(columns_list, str):
-            columns_list = [columns_list]
-        self.datetime_columns = columns_list
+    def set_datetime_columns(self,
+                             columns_list: Union[List[str], str, None],
+                             datetime_formats: Union[List[str], str, None] = None,
+                             replace_formats: bool = True):
+        if columns_list is not None:
+            if isinstance(columns_list, str):
+                columns_list = [columns_list]
+            if isinstance(datetime_formats, str):
+                datetime_formats = [datetime_formats] * len(columns_list)
+            elif datetime_formats is None:
+                datetime_formats = [None] * len(columns_list)
+            elif isinstance(datetime_formats, list):
+                if len(datetime_formats) != len(columns_list):
+                    raise Exception("Len of datetime formats != len datetime columns")
+            for i in range(len(columns_list)):
+                if replace_formats or (columns_list[i] not in self.datetime_columns):
+                    self.datetime_columns[columns_list[i]] = datetime_formats[i]
 
     @validate
     def set_output_columns(self, columns_list: Union[List[str], str, None]):
@@ -202,36 +216,23 @@ class Table:
 
     @validate
     def check_datetime_format(self,
-                              columns: Union[str, list] = None,
-                              format: str = None,
+                              columns: Union[str, list, None] = None,
+                              datetime_formats: Union[str, list, None] = None,
                               get_rows_flag: bool = False,
                               flag_warning: bool = False,
                               check_description: str = None) -> Union[int, dict, None]:
 
-        if columns is None:
-            if self.datetime_columns is None:
-                # TODO Log unable to check datetime columns set them before
-                result = None
-            else:
-                result = {}
-                for col in self.datetime_columns:
-                    check = DatetimeFormat(self, format, col)
-                    if check_description is not None:
-                        check.set_check_description(check_description)
-                    check.set_flag_warning(flag_warning)
-                    result[col] = check.check(get_rows_flag=get_rows_flag)
-        else:
-            if isinstance(columns, str):
-                check = DatetimeFormat(self, format, columns)
-                result = check.check(get_rows_flag=get_rows_flag)
-            else:
-                result = {}
-                for col in columns:
-                    check = DatetimeFormat(self, format, col)
-                    if check_description is not None:
-                        check.set_check_description(check_description)
-                    check.set_flag_warning(flag_warning)
-                    result[col] = check.check(get_rows_flag=get_rows_flag)
+        if columns is not None:
+            self.set_datetime_columns(columns, datetime_formats)
+
+        result = {}
+        for col, f in self.datetime_columns.items():
+            if (columns is None) or (col in columns):
+                check = DatetimeFormat(self, col)
+                if check_description is not None:
+                    check.set_check_description(check_description)
+                check.set_flag_warning(flag_warning)
+                result[col] = check.check(get_rows_flag=get_rows_flag)
 
         return result
 
@@ -283,7 +284,8 @@ class Table:
 
     @validate
     def check_columns_between_dates(self,
-                                    columns: Union[str, list],
+                                    columns: Union[List[str], str, None],
+                                    datetime_formats: Union[List[str], str, None] = None,
                                     min_date: Union[str, date, datetime] = None,
                                     max_date: Union[str, date, datetime] = None,
                                     min_included: bool = True,
@@ -291,6 +293,7 @@ class Table:
                                     get_rows_flag: bool = False,
                                     flag_warning: bool = False,
                                     check_description: str = None) -> Union[int, dict, None]:
+        self.set_datetime_columns(columns, datetime_formats=datetime_formats, replace_formats=False)
         if isinstance(columns, str):
             check = ColumnBetweenDates(self,
                                        columns,

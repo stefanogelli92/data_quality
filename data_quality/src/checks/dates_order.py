@@ -8,6 +8,8 @@ from data_quality.src.utils import _aggregate_sql_filter, _output_column_to_sql,
 
 # TODO prevedere un troncamento della data per arrotondare
 # TODO formatting datetime custom
+TAG_FORMATTED = "_custom_formatted"
+
 
 class DatesOrder(Check):
 
@@ -27,19 +29,15 @@ class DatesOrder(Check):
         for i in range(1, len(self.ascending_columns)):
             for j in range(i):
                 if self.strictly_ascending:
-                    filter += f" OR coalesce(({self.ascending_columns[j]} >= {self.ascending_columns[i]}), false)"
+                    filter += f" OR coalesce(({self.ascending_columns[j] + TAG_FORMATTED} >= {self.ascending_columns[i] + TAG_FORMATTED}), false)"
                 else:
-                    filter += f" OR coalesce(({self.ascending_columns[j]} > {self.ascending_columns[i]}), false)"
+                    filter += f" OR coalesce(({self.ascending_columns[j] + TAG_FORMATTED} > {self.ascending_columns[i] + TAG_FORMATTED}), false)"
         filter += ")"
         return filter
 
     def _cast_datetime_sql(self):
-        sql_query = ""
-        for col in self.ascending_columns:
-            sql_query += f"CAST({col} as timestamp) as {col},"
-
-        sql_query = sql_query[:-1]
-        return sql_query
+        columns = [self.table.source.cast_datetime_sql(col, self.table.datetime_columns[col]) + " as " + col + TAG_FORMATTED for col in self.ascending_columns]
+        return ",".join(columns)
 
     def _get_number_ko_sql(self) -> int:
         ignore_filters = self.table.table_filter
@@ -55,7 +53,7 @@ class DatesOrder(Check):
                         {sql_cast_datetime}
                     from {self.table.db_name}
                     {ignore_filters}
-                    ) a
+                    )
                 group by check
                 """
         df = self.table.source.run_query(query)
@@ -83,15 +81,19 @@ class DatesOrder(Check):
             {output_columns}
         from (
             SELECT
+                *,
                 {sql_cast_datetime}
             from {self.table.db_name}
             {ignore_filters}
-            ) a
+            )
         WHERE 
         {negative_filter}
         {sql_limit}
         """
         df = self.table.source.run_query(query)
+        for col in self.ascending_columns:
+            if col + TAG_FORMATTED in df.columns:
+                df.drop([col + TAG_FORMATTED], axis=1, inplace=True)
         return df
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:

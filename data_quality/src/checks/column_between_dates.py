@@ -26,15 +26,8 @@ class ColumnBetweenDates(Check):
         self.max_included = max_included
 
         self.check_description = self._create_check_description()
+        self.custom_check = None
 
-        ignore_filter = _create_filter_columns_not_null(column_name)
-
-        negative_filter = self._create_filter()
-
-        self.custom_check = Custom(table,
-                                   negative_filter,
-                                   self.check_description,
-                                   ignore_filters=ignore_filter)
 
     def _create_check_description(self):
         min_date = self.min_date.strftime("%Y-%m-%d") if self.min_date is not None else None
@@ -51,22 +44,32 @@ class ColumnBetweenDates(Check):
             return ""
 
     def _create_filter(self):
+        cast_sql_datetime = self.table.source.cast_datetime_sql(self.column_name, self.table.datetime_columns[self.column_name])
         min_date = self.min_date.strftime("%Y-%m-%d %H:%M:%S") if self.min_date is not None else None
         max_date = self.max_date.strftime("%Y-%m-%d %H:%M:%S") if self.max_date is not None else None
         if (min_date is not None) and (max_date is not None):
             min_operator = "<" if self.min_included else "<="
             max_operator = ">" if self.max_included else ">="
-            return f"((cast({self.column_name} as float) {min_operator} {min_date}) AND (cast({self.column_name} as float) {max_operator} {max_date}))"
+            return f"(({cast_sql_datetime} {min_operator} '{min_date}') OR ({cast_sql_datetime} {max_operator} '{max_date}'))"
         elif (min_date is not None) and (max_date is None):
             operator = "<" if self.min_included else "<="
-            return f"(cast({self.column_name} as float) {operator} {min_date})"
+            return f"({cast_sql_datetime} {operator} '{min_date}')"
         elif (min_date is None) and (max_date is not None):
             operator = ">" if self.max_included else ">="
-            return f"(cast({self.column_name} as float) {operator} {max_date})"
+            return f"({cast_sql_datetime} {operator} '{max_date}')"
         else:
             return ""
 
     def _get_number_ko_sql(self) -> int:
+        ignore_filters = [_create_filter_columns_not_null(self.column_name),
+                          f"{self.table.source.cast_datetime_sql(self.column_name, self.table.datetime_columns[self.column_name])} is not null"]
+
+        negative_filter = self._create_filter()
+
+        self.custom_check = Custom(self.table,
+                                   negative_filter,
+                                   self.check_description,
+                                   ignore_filters=ignore_filters)
         return self.custom_check._get_number_ko_sql()
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:

@@ -20,6 +20,7 @@ class Sources(object):
             BigQuery(run_query_function)
         ]
         self.cast_datetime_sql = None
+        self.cast_float_sql = None
         self.set_source_type(type_sources)
 
     def set_source_type(self, type_sources: str):
@@ -46,6 +47,18 @@ class Sources(object):
         else:
             raise Exception("Unable to query db for cast as datetime.")
 
+        # Cast float
+        cast_float_sql = None
+        for source_type in self.list_source_type:
+            if cast_float_sql is None:
+                check = source_type.check_cast_float()
+                if check:
+                    cast_float_sql = source_type.cast_float_sql
+        if cast_float_sql is not None:
+            self.cast_float_sql = cast_float_sql
+        else:
+            raise Exception("Unable to query db for cast as float.")
+
     def check_query_function(self):
             query = """
             SELECT 
@@ -60,6 +73,10 @@ class Sources(object):
         for source_type in self.list_source_type:
             if type_sources.lower() == source_type.name:
                 self.cast_datetime_sql = source_type.cast_datetime_sql
+        # Cast Float
+        for source_type in self.list_source_type:
+            if type_sources.lower() == source_type.name:
+                self.cast_float_sql = source_type.cast_float_sql
 
     def create_table(self,
                      name: str,
@@ -67,6 +84,7 @@ class Sources(object):
                      output_name: str = None,
                      not_empthy_columns: Union[List[str], str] = None,
                      datetime_columns: Union[List[str], str] = None,
+                     datetime_formats: Union[List[str], str] = None,
                      table_filter: str = None
                      ) -> Table:
         table = Table(db_name=name,
@@ -75,7 +93,8 @@ class Sources(object):
                       output_name=output_name,
                       table_filter=table_filter,
                       not_empthy_columns=not_empthy_columns,
-                      datetime_columns=datetime_columns)
+                      datetime_columns=datetime_columns,
+                      datetime_formats=datetime_formats)
         self.session.tables.append(table)
         return table
 

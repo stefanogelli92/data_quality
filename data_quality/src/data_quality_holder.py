@@ -23,8 +23,9 @@ class DataQualitySession(object):
                                     df: pd.DataFrame,
                                     index_column: str = None,
                                     output_name: str = None,
-                                    not_empthy_columns: Union[List[str], str] = None,
-                                    datetime_columns: Union[List[str], str] = None,
+                                    not_empthy_columns: Union[List[str], str, None] = None,
+                                    datetime_columns: Union[List[str], str, None] = None,
+                                    datetime_formats: Union[List[str], str, None] = None,
                                     table_filter: str = None
                                     ) -> Table:
         table = Table(df=df,
@@ -32,7 +33,8 @@ class DataQualitySession(object):
                       output_name=output_name,
                       table_filter=table_filter,
                       not_empthy_columns=not_empthy_columns,
-                      datetime_columns=datetime_columns)
+                      datetime_columns=datetime_columns,
+                      datetime_formats=datetime_formats)
         self.tables.append(table)
         return table
 

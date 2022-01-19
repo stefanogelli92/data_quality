@@ -24,7 +24,28 @@ class Impala(SourceType):
         return result
 
     def cast_datetime_sql(self, column_name, format_date):
-        return f"to_timestamp({column_name}, '{format_date}')"
+        if format_date is None:
+            return column_name
+        else:
+            return f"to_timestamp({column_name}, '{format_date}')"
+
+    def check_cast_float(self):
+        result = True
+        try:
+            query = """
+            SELECT 
+                cast(3 as float) as A,
+                cast('x' as float) as B
+            """
+            df = self.run_query_function(query)
+            result = result & (df["A"].isna().sum() == 0)
+            result = result & (df["B"].isna().sum() == 1)
+        except:
+            result = False
+        return result
+
+    def cast_float_sql(self, column_name):
+        return f"cast({column_name} as float)"
 
 
 

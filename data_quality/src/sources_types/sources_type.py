@@ -14,3 +14,11 @@ class SourceType(ABC):
     @abstractmethod
     def cast_datetime_sql(self, column_name: str, format_date: str) -> str:
         pass
+
+    @abstractmethod
+    def check_cast_float(self) -> bool:
+        pass
+
+    @abstractmethod
+    def cast_float_sql(self, column_name: str) -> str:
+        pass

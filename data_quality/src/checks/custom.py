@@ -19,11 +19,11 @@ class Custom(Check):
         self.table = table
         self.check_description = check_description
         self.negative_filter = negative_filter
-        self.ignore_filters = ignore_filters
+        self.ignore_filters = ignore_filters if isinstance(ignore_filters, list) else [ignore_filters]
         self.columns_not_null = columns_not_null
 
     def _get_number_ko_sql(self) -> int:
-        ignore_filters = [self.ignore_filters]
+        ignore_filters = self.ignore_filters
         ignore_filters.append(_create_filter_columns_not_null(self.columns_not_null))
         ignore_filters.append(self.table.table_filter)
         ignore_filters = _aggregate_sql_filter(ignore_filters)
@@ -66,7 +66,7 @@ class Custom(Check):
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
         # TODO rivedere query trovare una funzione che prenda codice sql
-        sql_filter = [self.ignore_filters]
+        sql_filter = self.ignore_filters
         sql_filter.append(self.table.table_filter)
         sql_filter.append(self.negative_filter)
         sql_filter = _aggregate_sql_filter(sql_filter)

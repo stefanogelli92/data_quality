@@ -26,14 +26,7 @@ class ColumnBetweenValues(Check):
 
         self.check_description = self._create_check_description()
 
-        ignore_filter = _create_filter_columns_not_null(column_name)
-
-        negative_filter = self._create_filter()
-
-        self.custom_check = Custom(table,
-                                   negative_filter,
-                                   self.check_description,
-                                   ignore_filters=ignore_filter)
+        self.custom_check = None
 
     def _create_check_description(self):
         if (self.min_value is not None) and (self.max_value is not None):
@@ -48,20 +41,29 @@ class ColumnBetweenValues(Check):
             return ""
 
     def _create_filter(self):
+        cast_sql_float = self.table.source.cast_float_sql(self.column_name)
         if (self.min_value is not None) and (self.max_value is not None):
             min_operator = "<" if self.min_included else "<="
             max_operator = ">" if self.max_included else ">="
-            return f"((cast({self.column_name} as float) {min_operator} {self.min_value}) AND (cast({self.column_name} as float) {max_operator} {self.max_value}))"
+            return f"(({cast_sql_float} {min_operator} {self.min_value}) OR ({cast_sql_float} {max_operator} {self.max_value}))"
         elif (self.min_value is not None) and (self.max_value is None):
             operator = "<" if self.min_included else "<="
-            return f"(cast({self.column_name} as float) {operator} {self.min_value})"
+            return f"({cast_sql_float} {operator} {self.min_value})"
         elif (self.min_value is None) and (self.max_value is not None):
             operator = ">" if self.max_included else ">="
-            return f"(cast({self.column_name} as float) {operator} {self.max_value})"
+            return f"({cast_sql_float} {operator} {self.max_value})"
         else:
             return ""
 
     def _get_number_ko_sql(self) -> int:
+        ignore_filter = _create_filter_columns_not_null(self.column_name)
+
+        negative_filter = self._create_filter()
+
+        self.custom_check = Custom(self.table,
+                                   negative_filter,
+                                   self.check_description,
+                                   ignore_filters=ignore_filter)
         return self.custom_check._get_number_ko_sql()
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
