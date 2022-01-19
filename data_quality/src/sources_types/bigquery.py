@@ -47,5 +47,26 @@ class BigQuery(SourceType):
     def cast_float_sql(self, column_name):
         return f"safe_cast({column_name} as float64)"
 
+    def check_regex(self):
+        result = True
+        try:
+            query = """
+               SELECT  
+                REGEXP_CONTAINS("2022-01-18", "^[0-9]{4}-[0-9]{2}-[0-9]{2}$") as A,
+                REGEXP_CONTAINS("2022-01-182", "(?i)^[0-9]{4}-[0-9]{2}-[0-9]{2}$") as B
+               """
+            df = self.run_query_function(query)
+            result = result & (df["A"].sum() == 1)
+            result = result & (df["B"].sum() == 0)
+        except:
+            result = False
+        return result
+
+    def match_regex(self, column_name: str, regex: str, case_sensitive: bool = True) -> str:
+        if case_sensitive:
+            return f"REGEXP_CONTAINS({column_name}, '{regex}')"
+        else:
+            return f"REGEXP_CONTAINS({column_name}, '(?i){regex}')"
+
 
 

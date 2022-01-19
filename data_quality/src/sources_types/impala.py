@@ -47,5 +47,26 @@ class Impala(SourceType):
     def cast_float_sql(self, column_name):
         return f"cast({column_name} as float)"
 
+    def check_regex(self):
+        result = True
+        try:
+            query = """
+            SELECT  
+                regexp_like("2022-01-18", "^[0-9]{4}-[0-9]{2}-[0-9]{2}$") as A,
+                regexp_like("2022-01-182", "^[0-9]{4}-[0-9]{2}-[0-9]{2}$", 'i') as B
+            """
+            df = self.run_query_function(query)
+            result = result & (df["A"].sum() == 1)
+            result = result & (df["B"].sum() == 0)
+        except:
+            result = False
+        return result
+
+    def match_regex(self, column_name: str, regex: str, case_sensitive: bool = True) -> str:
+        if case_sensitive:
+            return f"regexp_like({column_name}, '{regex}')"
+        else:
+            return f"regexp_like({column_name}, '{regex}', 'i')"
+
 
 

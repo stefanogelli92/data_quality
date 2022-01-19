@@ -21,6 +21,7 @@ class Sources(object):
         ]
         self.cast_datetime_sql = None
         self.cast_float_sql = None
+        self.match_regex = None
         self.set_source_type(type_sources)
 
     def set_source_type(self, type_sources: str):
@@ -59,6 +60,16 @@ class Sources(object):
         else:
             raise Exception("Unable to query db for cast as float.")
 
+        # Match Regex
+        match_regex = None
+        for source_type in self.list_source_type:
+            if match_regex is None:
+                check = source_type.check_regex()
+                if check:
+                    match_regex = source_type.match_regex
+        if match_regex is not None:
+            self.match_regex = match_regex
+
     def check_query_function(self):
             query = """
             SELECT 
@@ -77,6 +88,10 @@ class Sources(object):
         for source_type in self.list_source_type:
             if type_sources.lower() == source_type.name:
                 self.cast_float_sql = source_type.cast_float_sql
+        # Match regex
+        for source_type in self.list_source_type:
+            if type_sources.lower() == source_type.name:
+                self.match_regex = source_type.match_regex
 
     def create_table(self,
                      name: str,

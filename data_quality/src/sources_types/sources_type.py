@@ -22,3 +22,11 @@ class SourceType(ABC):
     @abstractmethod
     def cast_float_sql(self, column_name: str) -> str:
         pass
+
+    @abstractmethod
+    def check_regex(self) -> bool:
+        pass
+
+    @abstractmethod
+    def match_regex(self, column_name: str, regex: str, case_sensitive: bool = True) -> str:
+        pass

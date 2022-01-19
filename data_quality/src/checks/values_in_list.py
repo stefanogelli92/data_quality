@@ -36,11 +36,11 @@ class ValuesInList(Check):
         if self.case_sensitive:
             values_list = [str(v) for v in self.values_list]
             list_values_sql = "('" + "','".join(values_list) + "')"
-            return f"lower(cast({self.column_name} as STRING)) not in {list_values_sql}"
+            return f"cast({self.column_name} as STRING) not in {list_values_sql}"
         else:
             values_list = [str(v).lower() for v in self.values_list]
             list_values_sql = "('" + "','".join(values_list) + "')"
-            return f"cast({self.column_name} as STRING) not in {list_values_sql}"
+            return f"lower(cast({self.column_name} as STRING)) not in {list_values_sql}"
 
     def _get_number_ko_sql(self) -> int:
         return self.custom_check._get_number_ko_sql()

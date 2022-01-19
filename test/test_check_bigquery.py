@@ -162,6 +162,71 @@ class TestCheckSQL(unittest.TestCase):
         test_table.check_dates_order(["A", "B", "C", "D"], get_rows_flag=True)
         check_results(result_df, test_table)
 
+    def test_dates_strictly_order(self):
+        db_name = "dates_strictly_order"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name,
+                                           datetime_columns=["A", "B", "C", "D"],
+                                           datetime_formats=["yyyy-MM-dd HH24:MI:SS", None, None, None])
+        result_df = get_dataframe_for_test(db_name)
+        test_table.check_dates_order(["A", "B", "C", "D"], strictly_ascending=True, get_rows_flag=True)
+        check_results(result_df, test_table)
+
+    def test_values_order(self):
+        db_name = "values_order"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name)
+        result_df = get_dataframe_for_test(db_name)
+        test_table.check_values_order(["A", "B", "C", "D"], get_rows_flag=True)
+        check_results(result_df, test_table)
+
+    def test_values_strictly_order(self):
+        db_name = "values_strictly_order"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name)
+        result_df = get_dataframe_for_test(db_name)
+        test_table.check_values_order(["A", "B", "C", "D"], strictly_ascending=True, get_rows_flag=True)
+        check_results(result_df, test_table)
+
+    def test_values_in_list(self):
+        db_name = "values_in_list_cs"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name)
+        result_df = get_dataframe_for_test(db_name)
+        test_table.check_values_in_list("A", values_list=["a", "b"], get_rows_flag=True)
+        check_results(result_df, test_table)
+
+    def test_values_in_list_case_insensitive(self):
+        db_name = "values_in_list"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name)
+        result_df = get_dataframe_for_test(db_name)
+        test_table.check_values_in_list("A", values_list=["a", "b"], case_sensitive=False, get_rows_flag=True)
+        check_results(result_df, test_table)
+
+    def test_match_regex(self):
+        db_name = "match_regex"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name)
+        result_df = get_dataframe_for_test(db_name)
+        test_table.check_column_match_regex("A", regex=FISCALCODE_REGEX, get_rows_flag=True)
+        check_results(result_df, test_table)
+
+    def test_custom_condition(self):
+        db_name = "custom_condition"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name)
+        result_df = get_dataframe_for_test(db_name)
+        test_table.check_custom_condition("A = 3", get_rows_flag=True)
+        check_results(result_df, test_table)
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

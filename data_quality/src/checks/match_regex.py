@@ -23,23 +23,21 @@ class MatchRegex(Check):
 
         self.check_description = f"Wrong format in column {column_name}"
 
-        ignore_filter = _create_filter_columns_not_null(column_name)
-
-        negative_filter = self._create_filter()
-
-        self.custom_check = Custom(table,
-                                   negative_filter,
-                                   self.check_description,
-                                   ignore_filters=ignore_filter)
+        self.custom_check = None
 
     def _create_filter(self):
         regex = re.sub(r"(?<!\\)\\(?!\\)", r"\\\\", self.regex)
-        if self.case_sensitive:
-            return f" NOT regexp_like({self.column_name}, '{regex}') "
-        else:
-            return f" NOT regexp_like({self.column_name}, '{regex}', 'i') "
+        return f" NOT {self.table.source.match_regex(self.column_name, regex, self.case_sensitive)} "
 
     def _get_number_ko_sql(self) -> int:
+        ignore_filter = _create_filter_columns_not_null(self.column_name)
+
+        negative_filter = self._create_filter()
+
+        self.custom_check = Custom(self.table,
+                                   negative_filter,
+                                   self.check_description,
+                                   ignore_filters=ignore_filter)
         return self.custom_check._get_number_ko_sql()
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
