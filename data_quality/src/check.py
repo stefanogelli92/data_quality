@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Union, List
 
 import pandas as pd
 
@@ -17,6 +17,7 @@ class Check(ABC):
         self.n_max_rows_output = None
         self.ignore_filters = []
         self.columns_not_null = None
+        self.output_columns = None
 
         self.flag_ko = None
         self.n_ko = None
@@ -41,7 +42,8 @@ class Check(ABC):
                           flag_warning: bool = False,
                           n_max_rows_output: Union[int, None] = None,
                           ignore_filter: Union[str, None] = None,
-                          columns_not_null: Union[int, None] = None
+                          columns_not_null: Union[int, None] = None,
+                          output_columns: Union[List[str], str] = None
                           ):
         # TODO add long description
         if check_description is not None:
@@ -51,6 +53,7 @@ class Check(ABC):
         self.ignore_filters = []
         self.add_ignore_filter(ignore_filter)
         self.columns_not_null = columns_not_null
+        self.output_columns = output_columns
 
     def add_ignore_filter(self, sql_filter):
         if self.ignore_filters is None:
@@ -97,7 +100,7 @@ class Check(ABC):
         sql_filter.append(self.table.table_filter)
         sql_filter.append(negative_filter)
         sql_filter = _aggregate_sql_filter(sql_filter)
-        output_columns = _output_column_to_sql(self.table.output_columns)
+        output_columns = _output_column_to_sql(self.output_columns)
         sql_limit = _query_limit(self.n_max_rows_output)
         query = f"""
         SELECT 
@@ -114,18 +117,18 @@ class Check(ABC):
         if self.table.flag_dataframe:
             df_ko = self._get_rows_ko_dataframe()
             n_ko = df_ko.shape[0]
-            if self.table.output_columns is not None:
+            if self.output_columns is not None:
                 if n_ko > 0:
-                    df_ko = df_ko[self.table.output_columns]
+                    df_ko = df_ko[self.output_columns]
                 else:
-                    df_ko = pd.DataFrame(columns=self.table.output_columns)
+                    df_ko = pd.DataFrame(columns=self.output_columns)
             df_ko[TAG_CHECK_DESCRIPTION] = self.check_description
             flag_over_max_rows = False
         else:
             n_ko = self._get_number_ko_sql()
             if get_rows_flag:
                 if n_ko == 0:
-                    df_ko = pd.DataFrame(columns=self.table.output_columns)
+                    df_ko = pd.DataFrame(columns=self.output_columns)
                     flag_over_max_rows = False
                 else:
                     df_ko = self._get_rows_ko_sql()

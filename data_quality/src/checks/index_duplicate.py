@@ -31,6 +31,8 @@ class IndexDuplicate(Check):
         n_distinct_index = df["n_distinct_index"].values[0]
         n_ok = n_distinct_index
         n_ko = n_not_null_index - n_distinct_index
+        if n_ko > 0:
+            self.table.index_problem = True
         return n_ko
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
@@ -56,6 +58,8 @@ class IndexDuplicate(Check):
         """
         df = self.table.source.run_query(query)
         df.drop(["n_distinct_index"], axis=1, inplace=True)
+        if df.shape[0] > 0:
+            self.table.index_problem = True
         return df
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
@@ -65,6 +69,8 @@ class IndexDuplicate(Check):
         df[tag_count_index] = df.groupby(self.index_col)[self.index_col].transform("count")
         df = df[df[tag_count_index] > 1]
         df.drop([tag_count_index], axis=1, inplace=True)
+        if df.shape[0] > 0:
+            self.table.index_problem = True
         return df
 
 

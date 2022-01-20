@@ -14,15 +14,23 @@ class IndexNull(Check):
 
     def _get_number_ko_sql(self) -> int:
         negative_filter = _create_filter_columns_null(self.index_column)
-        return self.standard_get_number_ko_sql(negative_filter)
+        n_ko = self.standard_get_number_ko_sql(negative_filter)
+        if n_ko > 0:
+            self.table.index_problem = True
+        return n_ko
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
         negative_filter = _create_filter_columns_null(self.index_column)
-        return self.standard_rows_ko_sql(negative_filter)
+        df_ko = self.standard_rows_ko_sql(negative_filter)
+        if df_ko.shape[0] > 0:
+            self.table.index_problem = True
+        return df_ko
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
         df = self.table.df
         df = df[df[self.index_column].isna() | (df[self.index_column].astype(str) == "")]
+        if df.shape[0] > 0:
+            self.table.index_problem = True
         return df
 
 
