@@ -4,7 +4,6 @@ import pandas as pd
 import re
 
 from data_quality.src.check import Check
-from data_quality.src.checks.custom import Custom
 from data_quality.src.utils import _create_filter_columns_not_null
 
 
@@ -23,26 +22,19 @@ class MatchRegex(Check):
 
         self.check_description = f"Wrong format in column {column_name}"
 
-        self.custom_check = None
-
     def _create_filter(self):
         regex = re.sub(r"(?<!\\)\\(?!\\)", r"\\\\", self.regex)
         return f" NOT {self.table.source.match_regex(self.column_name, regex, self.case_sensitive)} "
 
     def _get_number_ko_sql(self) -> int:
-        ignore_filter = _create_filter_columns_not_null(self.column_name)
-
+        self.add_ignore_filter(_create_filter_columns_not_null(self.column_name))
         negative_filter = self._create_filter()
-
-        self.custom_check = Custom(self.table,
-                                   negative_filter,
-                                   self.check_description,
-                                   ignore_filters=ignore_filter)
-        self.custom_check.n_max_rows_output = self.n_max_rows_output
-        return self.custom_check._get_number_ko_sql()
+        return self.standard_get_number_ko_sql(negative_filter)
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
-        return self.custom_check._get_rows_ko_sql()
+        self.add_ignore_filter(_create_filter_columns_not_null(self.column_name))
+        negative_filter = self._create_filter()
+        return self.standard_rows_ko_sql(negative_filter)
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
         df = self.table.df

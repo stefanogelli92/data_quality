@@ -15,6 +15,8 @@ class IndexDuplicate(Check):
 
     def _get_number_ko_sql(self) -> int:
         ignore_filters = [_create_filter_columns_not_null(self.index_col),
+                          _create_filter_columns_not_null(self.columns_not_null),
+                          self.ignore_filters,
                           self.table.table_filter]
         ignore_filters = _aggregate_sql_filter(ignore_filters)
         query = f"""
@@ -33,6 +35,8 @@ class IndexDuplicate(Check):
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
         ignore_filters = [_create_filter_columns_not_null(self.index_col),
+                          _create_filter_columns_not_null(self.columns_not_null),
+                          self.ignore_filters,
                           self.table.table_filter]
         ignore_filters = _aggregate_sql_filter(ignore_filters)
         output_columns = _output_column_to_sql(self.table.output_columns)

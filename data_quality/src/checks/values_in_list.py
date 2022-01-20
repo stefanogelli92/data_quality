@@ -3,7 +3,6 @@ from typing import Union, Optional
 import pandas as pd
 
 from data_quality.src.check import Check
-from data_quality.src.checks.custom import Custom
 from data_quality.src.utils import _create_filter_columns_not_null
 
 
@@ -22,14 +21,6 @@ class ValuesInList(Check):
 
         self.check_description = f"Value in column {column_name} not admitted"
 
-        ignore_filter = _create_filter_columns_not_null(column_name)
-
-        negative_filter = self._create_filter()
-
-        self.custom_check = Custom(table,
-                                   negative_filter,
-                                   self.check_description,
-                                   ignore_filters=ignore_filter)
 
     def _create_filter(self):
 
@@ -43,11 +34,14 @@ class ValuesInList(Check):
             return f"lower(cast({self.column_name} as STRING)) not in {list_values_sql}"
 
     def _get_number_ko_sql(self) -> int:
-        self.custom_check.n_max_rows_output = self.n_max_rows_output
-        return self.custom_check._get_number_ko_sql()
+        self.add_ignore_filter(_create_filter_columns_not_null(self.column_name))
+        negative_filter = self._create_filter()
+        return self.standard_get_number_ko_sql(negative_filter)
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
-        return self.custom_check._get_rows_ko_sql()
+        self.add_ignore_filter(_create_filter_columns_not_null(self.column_name))
+        negative_filter = self._create_filter()
+        return self.standard_rows_ko_sql(negative_filter)
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
         df = self.table.df

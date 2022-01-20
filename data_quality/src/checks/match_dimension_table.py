@@ -34,6 +34,8 @@ class MatchDImensionTable(Check):
 
     def _get_number_ko_sql_dimension_table_sql(self):
         ignore_filters = [_create_filter_columns_not_null(self.foreign_keys),
+                          _create_filter_columns_not_null(self.columns_not_null),
+                          self.ignore_filters,
                           self.table.table_filter]
         ignore_filters = _aggregate_sql_filter(ignore_filters)
 
@@ -65,6 +67,8 @@ class MatchDImensionTable(Check):
 
     def _get_number_ko_sql_dimension_table_dataframe(self):
         ignore_filters = [_create_filter_columns_not_null(self.foreign_keys),
+                          _create_filter_columns_not_null(self.columns_not_null),
+                          self.ignore_filters,
                           self.table.table_filter]
         ignore_filters = _aggregate_sql_filter(ignore_filters)
 
@@ -111,6 +115,8 @@ class MatchDImensionTable(Check):
 
     def _get_rows_ko_sql_dimension_table_sql(self) -> pd.DataFrame:
         ignore_filters = [_create_filter_columns_not_null(self.foreign_keys),
+                          _create_filter_columns_not_null(self.columns_not_null),
+                          self.ignore_filters,
                           self.table.table_filter]
         ignore_filters = _aggregate_sql_filter(ignore_filters)
 
@@ -149,8 +155,10 @@ class MatchDImensionTable(Check):
         negative_condition += columns_keys + "'))"
 
         ignore_filters = [_create_filter_columns_not_null(self.foreign_keys),
-                          self.table.table_filter,
-                          negative_condition]
+                          _create_filter_columns_not_null(self.columns_not_null),
+                          self.ignore_filters,
+                          negative_condition,
+                          self.table.table_filter]
         ignore_filters = _aggregate_sql_filter(ignore_filters)
 
         output_columns = _output_column_to_sql(self.table.output_columns)

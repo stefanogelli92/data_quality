@@ -147,6 +147,8 @@ class Table:
 
     @validate
     def check_index_not_null(self,
+                             ignore_filter: str = False,
+                             columns_not_null: Union[str, List[str], None] = None,
                              get_rows_flag: bool = False,
                              flag_warning: bool = False,
                              check_description: str = None,
@@ -156,7 +158,9 @@ class Table:
             check = IndexNull(self)
             check.initialize_params(check_description=check_description,
                                     flag_warning=flag_warning,
-                                    n_max_rows_output=n_max_rows_output)
+                                    n_max_rows_output=n_max_rows_output,
+                                    ignore_filter=ignore_filter,
+                                    columns_not_null=columns_not_null)
             n_ko = check.check(get_rows_flag=get_rows_flag)
         else:
             # TODO Log unable to check index insert index before
@@ -166,6 +170,8 @@ class Table:
 
     @validate
     def check_duplicates_index(self,
+                               ignore_filter: str = False,
+                               columns_not_null: Union[str, List[str], None] = None,
                                get_rows_flag: bool = False,
                                flag_warning: bool = False,
                                check_description: str = None,
@@ -175,7 +181,9 @@ class Table:
             check = IndexDuplicate(self)
             check.initialize_params(check_description=check_description,
                                     flag_warning=flag_warning,
-                                    n_max_rows_output=n_max_rows_output)
+                                    n_max_rows_output=n_max_rows_output,
+                                    ignore_filter=ignore_filter,
+                                    columns_not_null=columns_not_null)
             n_ko = check.check(get_rows_flag=get_rows_flag)
         else:
             # TODO Log unable to check index insert index before
@@ -186,6 +194,8 @@ class Table:
     @validate
     def check_not_empthy_column(self,
                                 columns: Union[str, list] = None,
+                                ignore_filter: str = False,
+                                columns_not_null: Union[str, List[str], None] = None,
                                 get_rows_flag: bool = False,
                                 flag_warning: bool = False,
                                 check_description: str = None,
@@ -201,11 +211,18 @@ class Table:
                     check = NotEmpthyColumn(self, col)
                     check.initialize_params(check_description=check_description,
                                             flag_warning=flag_warning,
-                                            n_max_rows_output=n_max_rows_output)
+                                            n_max_rows_output=n_max_rows_output,
+                                            ignore_filter=ignore_filter,
+                                            columns_not_null=columns_not_null)
                     result[col] = check.check(get_rows_flag=get_rows_flag)
         else:
             if isinstance(columns, str):
                 check = NotEmpthyColumn(self, columns)
+                check.initialize_params(check_description=check_description,
+                                        flag_warning=flag_warning,
+                                        n_max_rows_output=n_max_rows_output,
+                                        ignore_filter=ignore_filter,
+                                        columns_not_null=columns_not_null)
                 result = check.check(get_rows_flag=get_rows_flag)
             else:
                 result = {}
@@ -213,7 +230,9 @@ class Table:
                     check = NotEmpthyColumn(self, col)
                     check.initialize_params(check_description=check_description,
                                             flag_warning=flag_warning,
-                                            n_max_rows_output=n_max_rows_output)
+                                            n_max_rows_output=n_max_rows_output,
+                                            ignore_filter=ignore_filter,
+                                            columns_not_null=columns_not_null)
                     result[col] = check.check(get_rows_flag=get_rows_flag)
 
         return result
@@ -222,6 +241,8 @@ class Table:
     def check_datetime_format(self,
                               columns: Union[str, list, None] = None,
                               datetime_formats: Union[str, list, None] = None,
+                              ignore_filter: str = False,
+                              columns_not_null: Union[str, List[str], None] = None,
                               get_rows_flag: bool = False,
                               flag_warning: bool = False,
                               check_description: str = None,
@@ -236,13 +257,17 @@ class Table:
                 check = DatetimeFormat(self, col)
                 check.initialize_params(check_description=check_description,
                                         flag_warning=flag_warning,
-                                        n_max_rows_output=n_max_rows_output)
+                                        n_max_rows_output=n_max_rows_output,
+                                        ignore_filter=ignore_filter,
+                                        columns_not_null=columns_not_null)
                 result[col] = check.check(get_rows_flag=get_rows_flag)
 
         return result
 
     @validate
     def run_basic_check(self,
+                        ignore_filter: str = False,
+                        columns_not_null: Union[str, List[str], None] = None,
                         get_rows_flag: bool = False,
                         flag_warning: bool = False,
                         check_description: str = None,
@@ -250,19 +275,27 @@ class Table:
         self.check_index_not_null(get_rows_flag=get_rows_flag,
                                   flag_warning=flag_warning,
                                   check_description=check_description,
-                                  n_max_rows_output=n_max_rows_output)
+                                  n_max_rows_output=n_max_rows_output,
+                                  ignore_filter=ignore_filter,
+                                  columns_not_null=columns_not_null)
         self.check_duplicates_index(get_rows_flag=get_rows_flag,
                                     flag_warning=flag_warning,
                                     check_description=check_description,
-                                    n_max_rows_output=n_max_rows_output)
+                                    n_max_rows_output=n_max_rows_output,
+                                    ignore_filter=ignore_filter,
+                                    columns_not_null=columns_not_null)
         self.check_not_empthy_column(get_rows_flag=get_rows_flag,
                                      flag_warning=flag_warning,
                                      check_description=check_description,
-                                     n_max_rows_output=n_max_rows_output)
+                                     n_max_rows_output=n_max_rows_output,
+                                     ignore_filter=ignore_filter,
+                                     columns_not_null=columns_not_null)
         self.check_datetime_format(get_rows_flag=get_rows_flag,
                                    flag_warning=flag_warning,
                                    check_description=check_description,
-                                   n_max_rows_output=n_max_rows_output)
+                                   n_max_rows_output=n_max_rows_output,
+                                   ignore_filter=ignore_filter,
+                                   columns_not_null=columns_not_null)
 
     @validate
     def check_columns_between_values(self,
@@ -271,6 +304,8 @@ class Table:
                                      max_value: float = None,
                                      min_included: bool = True,
                                      max_included: bool = True,
+                                     ignore_filter: str = False,
+                                     columns_not_null: Union[str, List[str], None] = None,
                                      get_rows_flag: bool = False,
                                      flag_warning: bool = False,
                                      check_description: str = None,
@@ -284,7 +319,9 @@ class Table:
                                         max_included=max_included)
             check.initialize_params(check_description=check_description,
                                     flag_warning=flag_warning,
-                                    n_max_rows_output=n_max_rows_output)
+                                    n_max_rows_output=n_max_rows_output,
+                                    ignore_filter=ignore_filter,
+                                    columns_not_null=columns_not_null)
             result = check.check(get_rows_flag=get_rows_flag)
         else:
             result = {}
@@ -297,7 +334,9 @@ class Table:
                                             max_included=max_included)
                 check.initialize_params(check_description=check_description,
                                         flag_warning=flag_warning,
-                                        n_max_rows_output=n_max_rows_output)
+                                        n_max_rows_output=n_max_rows_output,
+                                        ignore_filter=ignore_filter,
+                                        columns_not_null=columns_not_null)
                 result[col] = check.check(get_rows_flag=get_rows_flag)
         return result
 
@@ -309,6 +348,8 @@ class Table:
                                     max_date: Union[str, date, datetime] = None,
                                     min_included: bool = True,
                                     max_included: bool = True,
+                                    ignore_filter: str = False,
+                                    columns_not_null: Union[str, List[str], None] = None,
                                     get_rows_flag: bool = False,
                                     flag_warning: bool = False,
                                     check_description: str = None,
@@ -323,7 +364,9 @@ class Table:
                                        max_included=max_included)
             check.initialize_params(check_description=check_description,
                                     flag_warning=flag_warning,
-                                    n_max_rows_output=n_max_rows_output)
+                                    n_max_rows_output=n_max_rows_output,
+                                    ignore_filter=ignore_filter,
+                                    columns_not_null=columns_not_null)
             result = check.check(get_rows_flag=get_rows_flag)
         else:
             result = {}
@@ -336,7 +379,9 @@ class Table:
                                            max_included=max_included)
                 check.initialize_params(check_description=check_description,
                                         flag_warning=flag_warning,
-                                        n_max_rows_output=n_max_rows_output)
+                                        n_max_rows_output=n_max_rows_output,
+                                        ignore_filter=ignore_filter,
+                                        columns_not_null=columns_not_null)
                 result[col] = check.check(get_rows_flag=get_rows_flag)
         return result
 
@@ -344,6 +389,8 @@ class Table:
     def check_date_column_not_in_future(self,
                                         column: Union[str, list],
                                         include: bool = True,
+                                        ignore_filter: str = False,
+                                        columns_not_null: Union[str, List[str], None] = None,
                                         get_rows_flag: bool = False,
                                         flag_warning: bool = False,
                                         check_description: str = None,
@@ -355,12 +402,16 @@ class Table:
                                                 get_rows_flag=get_rows_flag,
                                                 flag_warning=flag_warning,
                                                 check_description=check_description,
-                                                n_max_rows_output=n_max_rows_output)
+                                                n_max_rows_output=n_max_rows_output,
+                                                ignore_filter=ignore_filter,
+                                                columns_not_null=columns_not_null)
 
     @validate
     def check_dates_order(self,
                           ascending_columns: list,
                           strictly_ascending: bool = False,
+                          ignore_filter: str = False,
+                          columns_not_null: Union[str, List[str], None] = None,
                           get_rows_flag: bool = False,
                           flag_warning: bool = False,
                           check_description: str = None,
@@ -372,13 +423,17 @@ class Table:
         )
         check.initialize_params(check_description=check_description,
                                 flag_warning=flag_warning,
-                                n_max_rows_output=n_max_rows_output)
+                                n_max_rows_output=n_max_rows_output,
+                                ignore_filter=ignore_filter,
+                                columns_not_null=columns_not_null)
         return check.check(get_rows_flag=get_rows_flag)
 
     @validate
     def check_values_order(self,
                            ascending_columns: list,
                            strictly_ascending: bool = False,
+                           ignore_filter: str = False,
+                           columns_not_null: Union[str, List[str], None] = None,
                            get_rows_flag: bool = False,
                            flag_warning: bool = False,
                            check_description: str = None,
@@ -390,7 +445,9 @@ class Table:
         )
         check.initialize_params(check_description=check_description,
                                 flag_warning=flag_warning,
-                                n_max_rows_output=n_max_rows_output)
+                                n_max_rows_output=n_max_rows_output,
+                                ignore_filter=ignore_filter,
+                                columns_not_null=columns_not_null)
         return check.check(get_rows_flag=get_rows_flag)
 
     @validate
@@ -398,6 +455,8 @@ class Table:
                              columns: Union[str, list],
                              values_list: list,
                              case_sensitive: bool = True,
+                             ignore_filter: str = False,
+                             columns_not_null: Union[str, List[str], None] = None,
                              get_rows_flag: bool = False,
                              flag_warning: bool = False,
                              check_description: str = None,
@@ -409,7 +468,9 @@ class Table:
                                  case_sensitive=case_sensitive)
             check.initialize_params(check_description=check_description,
                                     flag_warning=flag_warning,
-                                    n_max_rows_output=n_max_rows_output)
+                                    n_max_rows_output=n_max_rows_output,
+                                    ignore_filter=ignore_filter,
+                                    columns_not_null=columns_not_null)
             result = check.check(get_rows_flag=get_rows_flag)
         else:
             result = {}
@@ -421,7 +482,9 @@ class Table:
                 result = check.check(get_rows_flag=get_rows_flag)
                 check.initialize_params(check_description=check_description,
                                         flag_warning=flag_warning,
-                                        n_max_rows_output=n_max_rows_output)
+                                        n_max_rows_output=n_max_rows_output,
+                                        ignore_filter=ignore_filter,
+                                        columns_not_null=columns_not_null)
                 result[col] = check.check(get_rows_flag=get_rows_flag)
         return result
 
@@ -429,6 +492,8 @@ class Table:
     def check_column_match_regex(self,
                                  columns: Union[str, list],
                                  regex: str,
+                                 ignore_filter: str = False,
+                                 columns_not_null: Union[str, List[str], None] = None,
                                  case_sensitive: bool = True,
                                  get_rows_flag: bool = False,
                                  flag_warning: bool = False,
@@ -441,7 +506,9 @@ class Table:
                                case_sensitive=case_sensitive)
             check.initialize_params(check_description=check_description,
                                     flag_warning=flag_warning,
-                                    n_max_rows_output=n_max_rows_output)
+                                    n_max_rows_output=n_max_rows_output,
+                                    ignore_filter=ignore_filter,
+                                    columns_not_null=columns_not_null)
             result = check.check(get_rows_flag=get_rows_flag)
         else:
             result = {}
@@ -452,7 +519,9 @@ class Table:
                                    case_sensitive=case_sensitive)
                 check.initialize_params(check_description=check_description,
                                         flag_warning=flag_warning,
-                                        n_max_rows_output=n_max_rows_output)
+                                        n_max_rows_output=n_max_rows_output,
+                                        ignore_filter=ignore_filter,
+                                        columns_not_null=columns_not_null)
                 result[col] = check.check(get_rows_flag=get_rows_flag)
         return result
 
@@ -472,13 +541,14 @@ class Table:
         check = Custom(
             self,
             negative_filter=negative_condition,
-            ignore_filters=ignore_condition,
-            columns_not_null=columns_not_null,
             check_description=check_description
         )
         check.initialize_params(check_description=check_description,
                                 flag_warning=flag_warning,
-                                n_max_rows_output=n_max_rows_output)
+                                n_max_rows_output=n_max_rows_output,
+                                ignore_filter=ignore_condition,
+                                columns_not_null=columns_not_null
+                                )
         return check.check(get_rows_flag=get_rows_flag)
 
     @validate
@@ -486,6 +556,8 @@ class Table:
                                           foreign_keys: Union[str, list],
                                           dimension_table,
                                           primary_keys: Union[str, list] = None,
+                                          ignore_filter: str = False,
+                                          columns_not_null: Union[str, List[str], None] = None,
                                           get_rows_flag: bool = False,
                                           check_description: str = None,
                                           flag_warning: bool = False,
@@ -498,7 +570,9 @@ class Table:
         )
         check.initialize_params(check_description=check_description,
                                 flag_warning=flag_warning,
-                                n_max_rows_output=n_max_rows_output)
+                                n_max_rows_output=n_max_rows_output,
+                                ignore_filter=ignore_filter,
+                                columns_not_null=columns_not_null)
         return check.check(get_rows_flag=get_rows_flag)
 
 

@@ -50,6 +50,7 @@ def _aggregate_sql_filter(filter_list):
     if (filter_list is None) or len(filter_list) == 0:
         sql_filter = ""
     else:
+        filter_list = list(set(filter_list))
         sql_filter = """ WHERE """
         sql_filter += " AND ".join(filter_list)
 

@@ -3,6 +3,9 @@ from typing import Union
 
 import pandas as pd
 
+from data_quality.src.utils import _create_filter_columns_not_null, _aggregate_sql_filter, _output_column_to_sql, \
+    _query_limit
+
 TAG_CHECK_DESCRIPTION = "check_description"
 
 
@@ -12,6 +15,8 @@ class Check(ABC):
         self.table = table
         self.check_description = check_description
         self.n_max_rows_output = None
+        self.ignore_filters = []
+        self.columns_not_null = None
 
         self.flag_ko = None
         self.n_ko = None
@@ -34,13 +39,75 @@ class Check(ABC):
     def initialize_params(self,
                           check_description: str = None,
                           flag_warning: bool = False,
-                          n_max_rows_output: Union[int, None] = None
+                          n_max_rows_output: Union[int, None] = None,
+                          ignore_filter: Union[str, None] = None,
+                          columns_not_null: Union[int, None] = None
                           ):
         # TODO add long description
         if check_description is not None:
             self.check_description = check_description
         self.flag_warning = flag_warning
         self.n_max_rows_output = n_max_rows_output
+        self.ignore_filters = []
+        self.add_ignore_filter(ignore_filter)
+        self.columns_not_null = columns_not_null
+
+    def add_ignore_filter(self, sql_filter):
+        if self.ignore_filters is None:
+            self.ignore_filters = []
+        elif isinstance(self.ignore_filters, str):
+            self.ignore_filters = [self.ignore_filters]
+        if sql_filter is None:
+            pass
+        elif isinstance(sql_filter, str):
+            self.ignore_filters.append(sql_filter)
+        elif isinstance(sql_filter, list):
+            for f in sql_filter:
+                self.ignore_filters.append(f)
+
+    def standard_get_number_ko_sql(self, negative_filter: str):
+        ignore_filters = self.ignore_filters
+        ignore_filters.append(_create_filter_columns_not_null(self.columns_not_null))
+        ignore_filters.append(self.table.table_filter)
+        ignore_filters = _aggregate_sql_filter(ignore_filters)
+        query = f"""
+                SELECT 
+                    CASE WHEN {negative_filter} THEN "KO" ELSE "OK" END as check,
+                    count(*) as n_rows
+                from {self.table.db_name}
+                {ignore_filters}
+                group by check
+                """
+        df = self.table.source.run_query(query)
+        n_ok = df.loc[df["check"] == "OK", "n_rows"].values
+        if len(n_ok) > 0:
+            n_ok = n_ok[0]
+        else:
+            n_ok = 0
+        n_ko = df.loc[df["check"] == "KO", "n_rows"].values
+        if len(n_ko) > 0:
+            n_ko = n_ko[0]
+        else:
+            n_ko = 0
+        return n_ko
+
+    def standard_rows_ko_sql(self, negative_filter: str) -> pd.DataFrame:
+        sql_filter = self.ignore_filters
+        sql_filter.append(_create_filter_columns_not_null(self.columns_not_null))
+        sql_filter.append(self.table.table_filter)
+        sql_filter.append(negative_filter)
+        sql_filter = _aggregate_sql_filter(sql_filter)
+        output_columns = _output_column_to_sql(self.table.output_columns)
+        sql_limit = _query_limit(self.n_max_rows_output)
+        query = f"""
+        SELECT 
+            {output_columns}
+        from {self.table.db_name}
+        {sql_filter}
+        {sql_limit}
+        """
+        df = self.table.source.run_query(query)
+        return df
 
     def check(self, get_rows_flag: bool = False):
         flag_over_max_rows = None

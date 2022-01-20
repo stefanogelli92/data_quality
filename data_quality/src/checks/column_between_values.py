@@ -3,7 +3,6 @@ from typing import Union, Optional
 import pandas as pd
 
 from data_quality.src.check import Check
-from data_quality.src.checks.custom import Custom
 from data_quality.src.utils import _human_format, _create_filter_columns_not_null
 
 
@@ -25,8 +24,6 @@ class ColumnBetweenValues(Check):
         self.max_included = max_included
 
         self.check_description = self._create_check_description()
-
-        self.custom_check = None
 
     def _create_check_description(self):
         if (self.min_value is not None) and (self.max_value is not None):
@@ -56,19 +53,14 @@ class ColumnBetweenValues(Check):
             return ""
 
     def _get_number_ko_sql(self) -> int:
-        ignore_filter = _create_filter_columns_not_null(self.column_name)
-
+        self.add_ignore_filter(_create_filter_columns_not_null(self.column_name))
         negative_filter = self._create_filter()
-
-        self.custom_check = Custom(self.table,
-                                   negative_filter,
-                                   self.check_description,
-                                   ignore_filters=ignore_filter)
-        self.custom_check.n_max_rows_output = self.n_max_rows_output
-        return self.custom_check._get_number_ko_sql()
+        return self.standard_get_number_ko_sql(negative_filter)
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
-        return self.custom_check._get_rows_ko_sql()
+        self.add_ignore_filter(_create_filter_columns_not_null(self.column_name))
+        negative_filter = self._create_filter()
+        return self.standard_rows_ko_sql(negative_filter)
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
         df = self.table.df

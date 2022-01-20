@@ -13,17 +13,14 @@ class NotEmpthyColumn(Check):
         self.table = table
         self.check_description = f"Missing value in column {column_name}"
         self.column_name = column_name
-        negative_filter = _create_filter_columns_null(column_name)
-        self.custom_check = Custom(table,
-                                   negative_filter,
-                                   self.check_description)
 
     def _get_number_ko_sql(self) -> int:
-        self.custom_check.n_max_rows_output = self.n_max_rows_output
-        return self.custom_check._get_number_ko_sql()
+        negative_filter = _create_filter_columns_null(self.column_name)
+        return self.standard_get_number_ko_sql(negative_filter)
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
-        return self.custom_check._get_rows_ko_sql()
+        negative_filter = _create_filter_columns_null(self.column_name)
+        return self.standard_rows_ko_sql(negative_filter)
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
         df = self.table.df

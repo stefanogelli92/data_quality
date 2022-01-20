@@ -4,7 +4,6 @@ from datetime import date, datetime
 import pandas as pd
 
 from data_quality.src.check import Check
-from data_quality.src.checks.custom import Custom
 from data_quality.src.utils import _create_filter_columns_not_null
 
 
@@ -26,7 +25,6 @@ class ColumnBetweenDates(Check):
         self.max_included = max_included
 
         self.check_description = self._create_check_description()
-        self.custom_check = None
 
     def _create_check_description(self):
         min_date = self.min_date.strftime("%Y-%m-%d") if self.min_date is not None else None
@@ -60,20 +58,17 @@ class ColumnBetweenDates(Check):
             return ""
 
     def _get_number_ko_sql(self) -> int:
-        ignore_filters = [_create_filter_columns_not_null(self.column_name),
-                          f"{self.table.source.cast_datetime_sql(self.column_name, self.table.datetime_columns[self.column_name])} is not null"]
-
+        self.add_ignore_filter(_create_filter_columns_not_null(self.column_name))
+        self.add_ignore_filter(f"{self.table.source.cast_datetime_sql(self.column_name, self.table.datetime_columns[self.column_name])} is not null")
         negative_filter = self._create_filter()
-
-        self.custom_check = Custom(self.table,
-                                   negative_filter,
-                                   self.check_description,
-                                   ignore_filters=ignore_filters)
-        self.custom_check.n_max_rows_output = self.n_max_rows_output
-        return self.custom_check._get_number_ko_sql()
+        return self.standard_get_number_ko_sql(negative_filter)
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
-        return self.custom_check._get_rows_ko_sql()
+        self.add_ignore_filter(_create_filter_columns_not_null(self.column_name))
+        self.add_ignore_filter(
+            f"{self.table.source.cast_datetime_sql(self.column_name, self.table.datetime_columns[self.column_name])} is not null")
+        negative_filter = self._create_filter()
+        return self.standard_rows_ko_sql(negative_filter)
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
         df = self.table.df

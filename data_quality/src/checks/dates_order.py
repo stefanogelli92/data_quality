@@ -1,13 +1,9 @@
-from typing import Union, Optional
-from datetime import date, datetime
-
 import pandas as pd
 
 from data_quality.src.check import Check
-from data_quality.src.utils import _aggregate_sql_filter, _output_column_to_sql, _query_limit
+from data_quality.src.utils import _aggregate_sql_filter, _output_column_to_sql, _query_limit, \
+    _create_filter_columns_not_null
 
-# TODO prevedere un troncamento della data per arrotondare
-# TODO formatting datetime custom
 TAG_FORMATTED = "_custom_formatted"
 
 
@@ -40,7 +36,9 @@ class DatesOrder(Check):
         return ",".join(columns)
 
     def _get_number_ko_sql(self) -> int:
-        ignore_filters = self.table.table_filter
+        ignore_filters = [_create_filter_columns_not_null(self.columns_not_null),
+                          self.ignore_filters,
+                          self.table.table_filter]
         ignore_filters = _aggregate_sql_filter(ignore_filters)
         sql_filter = self._create_negative_filter()
         sql_cast_datetime = self._cast_datetime_sql()
@@ -70,7 +68,9 @@ class DatesOrder(Check):
         return n_ko
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:
-        ignore_filters = [self.table.table_filter]
+        ignore_filters = [_create_filter_columns_not_null(self.columns_not_null),
+                          self.ignore_filters,
+                          self.table.table_filter]
         ignore_filters = _aggregate_sql_filter(ignore_filters)
         negative_filter = self._create_negative_filter()
         output_columns = _output_column_to_sql(self.table.output_columns)
