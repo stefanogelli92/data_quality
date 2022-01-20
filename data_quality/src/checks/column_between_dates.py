@@ -28,7 +28,6 @@ class ColumnBetweenDates(Check):
         self.check_description = self._create_check_description()
         self.custom_check = None
 
-
     def _create_check_description(self):
         min_date = self.min_date.strftime("%Y-%m-%d") if self.min_date is not None else None
         max_date = self.max_date.strftime("%Y-%m-%d") if self.max_date is not None else None
@@ -70,6 +69,7 @@ class ColumnBetweenDates(Check):
                                    negative_filter,
                                    self.check_description,
                                    ignore_filters=ignore_filters)
+        self.custom_check.n_max_rows_output = self.n_max_rows_output
         return self.custom_check._get_number_ko_sql()
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:

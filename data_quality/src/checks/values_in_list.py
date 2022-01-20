@@ -43,6 +43,7 @@ class ValuesInList(Check):
             return f"lower(cast({self.column_name} as STRING)) not in {list_values_sql}"
 
     def _get_number_ko_sql(self) -> int:
+        self.custom_check.n_max_rows_output = self.n_max_rows_output
         return self.custom_check._get_number_ko_sql()
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:

@@ -12,12 +12,15 @@ class IndexNull(Check):
         self.table = table
         self.check_description = "Index null"
         self.index_column = table.index_column
-        negative_filter = _create_filter_columns_null(self.index_column)
-        self.custom_check = Custom(table,
-                                   negative_filter,
-                                   self.check_description)
+
+        self.custom_check = None
 
     def _get_number_ko_sql(self) -> int:
+        negative_filter = _create_filter_columns_null(self.index_column)
+        self.custom_check = Custom(self.table,
+                                  negative_filter,
+                                  self.check_description)
+        self.custom_check.n_max_rows_output = self.n_max_rows_output
         return self.custom_check._get_number_ko_sql()
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:

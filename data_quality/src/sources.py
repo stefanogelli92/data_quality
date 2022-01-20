@@ -7,12 +7,15 @@ from data_quality.src.sources_types.bigquery import BigQuery
 from data_quality.src.sources_types.impala import Impala
 from data_quality.src.table import Table
 
+DEFAULT_MAX_ROWS_OUTPUT = 10000
+
 
 class Sources(object):
     def __init__(self,
                  run_query_function: Callable[[str], pd.DataFrame],
                  session,
-                 type_sources: str):
+                 type_sources: str,
+                 n_max_rows_output: Union[int, None] = DEFAULT_MAX_ROWS_OUTPUT):
         self.run_query_function = run_query_function
         self.session = session
         self.list_source_type = [
@@ -23,6 +26,7 @@ class Sources(object):
         self.cast_float_sql = None
         self.match_regex = None
         self.set_source_type(type_sources)
+        self.n_max_rows_output = n_max_rows_output
 
     def set_source_type(self, type_sources: str):
         list_source_names = [t.name for t in self.list_source_type]
@@ -100,8 +104,11 @@ class Sources(object):
                      not_empthy_columns: Union[List[str], str] = None,
                      datetime_columns: Union[List[str], str] = None,
                      datetime_formats: Union[List[str], str] = None,
-                     table_filter: str = None
+                     table_filter: str = None,
+                     n_max_rows_output: Union[int, None] = None
                      ) -> Table:
+        if n_max_rows_output is None:
+            n_max_rows_output = self.n_max_rows_output
         table = Table(db_name=name,
                       source=self,
                       index_column=index_column,
@@ -109,7 +116,8 @@ class Sources(object):
                       table_filter=table_filter,
                       not_empthy_columns=not_empthy_columns,
                       datetime_columns=datetime_columns,
-                      datetime_formats=datetime_formats)
+                      datetime_formats=datetime_formats,
+                      n_max_rows_output=n_max_rows_output)
         self.session.tables.append(table)
         return table
 

@@ -74,7 +74,7 @@ class DatesOrder(Check):
         ignore_filters = _aggregate_sql_filter(ignore_filters)
         negative_filter = self._create_negative_filter()
         output_columns = _output_column_to_sql(self.table.output_columns)
-        sql_limit = _query_limit(self.table.max_rows)
+        sql_limit = _query_limit(self.n_max_rows_output)
         sql_cast_datetime = self._cast_datetime_sql()
         query = f"""
         SELECT 

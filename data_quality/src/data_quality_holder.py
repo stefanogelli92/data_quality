@@ -16,7 +16,8 @@ class DataQualitySession(object):
 
     def create_sources(self,
                        run_query_function: Callable[[str], pd.DataFrame],
-                       type_sources: str = None) -> Sources:
+                       type_sources: str = None,
+                       ) -> Sources:
         return Sources(run_query_function, self, type_sources=type_sources)
 
     def create_table_from_dataframe(self,

@@ -64,6 +64,7 @@ class ColumnBetweenValues(Check):
                                    negative_filter,
                                    self.check_description,
                                    ignore_filters=ignore_filter)
+        self.custom_check.n_max_rows_output = self.n_max_rows_output
         return self.custom_check._get_number_ko_sql()
 
     def _get_rows_ko_sql(self) -> pd.DataFrame:

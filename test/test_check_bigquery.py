@@ -17,9 +17,11 @@ def run_query_bigquery(query: str) -> pd.DataFrame:
     df = client.query(query).to_dataframe()
     return df
 
+
 def get_dataframe_for_test(sheet_name):
     df = pd.read_excel(r"test_df.xlsx", sheet_name=sheet_name)
     return df
+
 
 def create_csv():
     sheet_list = [
@@ -37,7 +39,9 @@ def create_csv():
         "values_in_list_cs",
         "values_in_list",
         "match_regex",
-        "custom_condition"
+        "custom_condition",
+        "dimension_table",
+        "fact_table"
     ]
     for sheet in sheet_list:
         df = pd.read_excel(r"test_df.xlsx", sheet_name=sheet)
@@ -225,6 +229,48 @@ class TestCheckSQL(unittest.TestCase):
         test_table = bigquery.create_table(DBBIGQUERY + db_name)
         result_df = get_dataframe_for_test(db_name)
         test_table.check_custom_condition("A = 3", get_rows_flag=True)
+        check_results(result_df, test_table)
+
+    def test_match_dimension_table_sql_sql1(self):
+        db_name = "fact_table"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name)
+        dimension_table = bigquery.create_table(DBBIGQUERY + "dimension_table", output_name="dimension_table", index_column="id")
+        result_df = get_dataframe_for_test(db_name)
+        test_table.check_match_match_dimension_table("dimension_id", dimension_table, get_rows_flag=True)
+        check_results(result_df, test_table)
+
+    def test_match_dimension_table_sql_sql2(self):
+        db_name = "fact_table"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name)
+        dimension_table = bigquery.create_table(DBBIGQUERY + "dimension_table", output_name="dimension_table", index_column="id")
+        result_df = get_dataframe_for_test(db_name)
+        test_table.check_match_match_dimension_table(["dimension_id", "dimension_code"], dimension_table, primary_keys=["id", "code"], get_rows_flag=True)
+        check_results(result_df, test_table)
+
+    def test_match_dimension_table_sql_df(self):
+        db_name = "fact_table"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name)
+        dimension_table = get_dataframe_for_test("dimension_table")
+        dimension_table = dq_session.create_table_from_dataframe(dimension_table, output_name="dimension_table", index_column="id")
+        result_df = get_dataframe_for_test(db_name)
+        test_table.check_match_match_dimension_table("dimension_id", dimension_table, get_rows_flag=True)
+        check_results(result_df, test_table)
+
+    def test_match_dimension_table_df_sql(self):
+        db_name = "dimension_table"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        dimension_table = bigquery.create_table(DBBIGQUERY + db_name, index_column="id", output_name="dimension_table")
+        test_table = get_dataframe_for_test("fact_table")
+        test_table = dq_session.create_table_from_dataframe(test_table, output_name="fact_table")
+        result_df = get_dataframe_for_test("fact_table")
+        test_table.check_match_match_dimension_table("dimension_id", dimension_table, get_rows_flag=True)
         check_results(result_df, test_table)
 
 

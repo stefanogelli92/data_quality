@@ -201,6 +201,32 @@ class TestCheckDataframe(unittest.TestCase):
                            check_names=False, check_dtype=False
                            )
 
+    def test_match_dimension_table1(self):
+        df = get_dataframe_for_test("fact_table")
+        dimension_table = get_dataframe_for_test("dimension_table")
+
+        dq_session = DataQualitySession()
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        dimension_table = dq_session.create_table_from_dataframe(dimension_table, output_name="dimension_table", index_column="id")
+        test_table.check_match_match_dimension_table("dimension_id", dimension_table)
+        assert_frame_equal(test_table.check_list[0].ko_rows,
+                           df[df["check_description"].notnull()],
+                           check_names=False, check_dtype=False
+                           )
+
+    def test_match_dimension_table2(self):
+        df = get_dataframe_for_test("fact_table")
+        dimension_table = get_dataframe_for_test("dimension_table")
+
+        dq_session = DataQualitySession()
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        dimension_table = dq_session.create_table_from_dataframe(dimension_table, output_name="dimension_table", index_column="id")
+        test_table.check_match_match_dimension_table(["dimension_id", "dimension_code"], dimension_table, primary_keys=["id", "code"])
+        assert_frame_equal(test_table.check_list[0].ko_rows,
+                           df[df["check_description"].notnull()],
+                           check_names=False, check_dtype=False
+                           )
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

@@ -36,7 +36,7 @@ class IndexDuplicate(Check):
                           self.table.table_filter]
         ignore_filters = _aggregate_sql_filter(ignore_filters)
         output_columns = _output_column_to_sql(self.table.output_columns)
-        sql_limit = _query_limit(self.table.max_rows)
+        sql_limit = _query_limit(self.n_max_rows_output)
         query = f"""
             SELECT
                 *

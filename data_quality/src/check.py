@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Union
 
 import pandas as pd
 
@@ -10,12 +11,13 @@ class Check(ABC):
     def __init__(self, table, check_description: str):
         self.table = table
         self.check_description = check_description
+        self.n_max_rows_output = None
 
         self.flag_ko = None
         self.n_ko = None
         self.flag_over_max_rows = None
         self.ko_rows = None
-        self.warning = False
+        self.flag_warning = False
 
     @abstractmethod
     def _get_number_ko_sql(self) -> int:
@@ -29,11 +31,16 @@ class Check(ABC):
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
         pass
 
-    def set_check_description(self, text: str):
-        self.check_description = text
-
-    def set_flag_warning(self, flag: bool):
-        self.warning = flag
+    def initialize_params(self,
+                          check_description: str = None,
+                          flag_warning: bool = False,
+                          n_max_rows_output: Union[int, None] = None
+                          ):
+        # TODO add long description
+        if check_description is not None:
+            self.check_description = check_description
+        self.flag_warning = flag_warning
+        self.n_max_rows_output = n_max_rows_output
 
     def check(self, get_rows_flag: bool = False):
         flag_over_max_rows = None
@@ -56,7 +63,7 @@ class Check(ABC):
                 else:
                     df_ko = self._get_rows_ko_sql()
                     n_rows = df_ko.shape[0]
-                    if n_rows == self.table.max_rows:
+                    if n_rows == self.n_max_rows_output:
                         flag_over_max_rows = True
                     else:
                         flag_over_max_rows = False

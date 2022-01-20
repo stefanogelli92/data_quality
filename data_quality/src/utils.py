@@ -56,10 +56,15 @@ def _aggregate_sql_filter(filter_list):
     return sql_filter
 
 
-def _output_column_to_sql(output_columns):
+def _output_column_to_sql(output_columns, table_tag=None):
     if output_columns is None:
-        output_columns = "*"
+        if table_tag is None:
+            output_columns = "*"
+        else:
+            output_columns = f"{table_tag}.*"
     elif isinstance(output_columns, list):
+        if table_tag is not None:
+            output_columns = [f"{table_tag}.{col}" for col in output_columns]
         output_columns = ",".join(output_columns)
     return output_columns
 
@@ -92,3 +97,12 @@ def _create_filter_columns_null(columns):
     else:
         filter_sql = ""
     return filter_sql
+
+
+def _clean_string_float_inf_columns_df(series):
+    result = series.astype(str)
+    result.replace({r'\.([0-9]*[1-9])(0+)$': r'\.\1',
+                             r'(\.0+)$': ''}, regex=True, inplace=True)
+    return result
+
+

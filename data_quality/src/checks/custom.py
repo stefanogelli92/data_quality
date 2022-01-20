@@ -71,7 +71,7 @@ class Custom(Check):
         sql_filter.append(self.negative_filter)
         sql_filter = _aggregate_sql_filter(sql_filter)
         output_columns = _output_column_to_sql(self.table.output_columns)
-        sql_limit = _query_limit(self.table.max_rows)
+        sql_limit = _query_limit(self.n_max_rows_output)
         query = f"""
         SELECT 
             {output_columns}
