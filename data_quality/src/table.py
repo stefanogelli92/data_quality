@@ -4,8 +4,9 @@ from datetime import date, datetime
 
 import pandas as pd
 
+from data_quality.plot import plot_table_results
 from data_quality.src.utils import _clean_sql_filter, _aggregate_sql_filter, _output_column_to_sql, _query_limit
-from data_quality.src.check import TAG_CHECK_DESCRIPTION
+from data_quality.src.check import TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION
 from data_quality.src.checks.index_null import IndexNull
 from data_quality.src.checks.index_duplicate import IndexDuplicate
 from data_quality.src.checks.not_empthy_column import NotEmpthyColumn
@@ -110,8 +111,15 @@ class Table:
             columns_list = list(dict.fromkeys(columns_list))
         self.output_columns = columns_list
 
-    def get_number_checks(self, consider_warning: bool = True) -> int:
-        if consider_warning:
+    def get_number_of_rows(self, refresh: bool = False):
+        if self.flag_dataframe:
+            return self.df.shape[0]
+        elif (self.n_rows is None) or refresh:
+            self.query_number_of_rows()
+        return self.n_rows
+
+    def get_number_checks(self, consider_warnings: bool = True) -> int:
+        if consider_warnings:
             return len(self.check_list)
         else:
             checks = [a for a in self.check_list if not a.flag_warning]
@@ -121,59 +129,108 @@ class Table:
         checks = [a for a in self.check_list if a.flag_warning]
         return len(checks)
 
-    def passed_all_checks(self, consider_warning: bool = False) -> bool:
+    def passed_all_checks(self, consider_warnings: bool = False) -> bool:
         failed_checks = [a for a in self.check_list if a.flag_ko]
-        if not consider_warning:
+        if not consider_warnings:
             failed_checks = [a for a in self.check_list if not a.flag_warning]
         return len(failed_checks) > 0
 
-    def over_n_max_rows_output(self):
-        return any([a.flag_over_max_rows for a in self.check_list])
-
-    def get_number_ko(self,
-                      unique_rows: bool = False,
-                      consider_warning: bool = True):
-        if unique_rows:
-            if self.over_n_max_rows_output():
-                raise Exception("Unable to get the number of unique rows ko because you have reached the max number of rows on output in one check.")
-            else:
-                ko_rows = self.get_ko_rows(consider_warning=consider_warning)
-                return ko_rows
+    def over_n_max_rows_output(self, consider_warnings: bool = False) -> bool:
+        if consider_warnings:
+            return any([a.flag_over_max_rows for a in self.check_list])
         else:
-            if consider_warning:
-                return sum([a.n_ko for a in self.check_list])
-            else:
-                return sum([a.n_ko for a in self.check_list if not a.flag_warning])
+            return any([a.flag_over_max_rows for a in self.check_list if not a.flag_warning])
 
-    def _create_ko_rows(self,
-                        consider_warning: bool = True) -> pd.DataFrame:
-        if consider_warning:
-            list_ko_rows = [a.ko_rows for a in self.check_list]
+    def get_unique_number_ko(self,
+                             consider_warnings: bool = True):
+        if self.over_n_max_rows_output(consider_warnings=consider_warnings):
+            raise Exception("Unable to get the number of unique rows ko because you have reached the max number of rows on output in one check.")
         else:
-            list_ko_rows = [a.ko_rows for a in self.check_list if not a.flag_warning]
+            ko_rows = self.get_ko_rows(consider_warnings=consider_warnings)
+            return ko_rows.shape[0]
+
+    def get_unique_number_warnings(self):
+        if self.over_n_max_rows_output(consider_warnings=True):
+            raise Exception(
+                "Unable to get the number of unique rows ko because you have reached the max number of rows on output in one check.")
+        else:
+            ko_rows = self.get_ko_rows(consider_warnings=True)
+            return ko_rows[ko_rows["flag_only_warning"]].shape[0]
+
+    def get_number_ko(self, consider_warnings: bool = True):
+        if consider_warnings:
+            return sum([a.n_ko for a in self.check_list])
+        else:
+            return sum([a.n_ko for a in self.check_list if not a.flag_warning])
+
+    def get_number_warnings(self):
+        return sum([a.n_ko for a in self.check_list if a.flag_warning])
+
+    def any_warning(self, flag_only_fail: True):
+        if flag_only_fail:
+            return len([a for a in self.check_list if (a.flag_warning) and (a.n_ko > 0)]) > 0
+        else:
+            return len([a for a in self.check_list if a.flag_warning]) > 0
+
+    def get_max_number_ko(self, consider_warnings: bool = True):
+        if consider_warnings:
+            return max([a.n_ko for a in self.check_list])
+        else:
+            return max([a.n_ko for a in self.check_list if not a.flag_warning])
+
+    def get_max_number_warnings(self):
+        return max([a.n_ko for a in self.check_list if a.flag_warning])
+
+    def _create_ko_rows(self):
+        list_ko_rows = []
+        for check in self.check_list:
+            if check.flag_ko:
+                _df = check.ko_rows
+                if check.flag_warning:
+                    _df[TAG_WARNING_DESCRIPTION] = _df[TAG_CHECK_DESCRIPTION]
+                    _df[TAG_CHECK_DESCRIPTION] = None
+                    _df["flag_warning"] = True
+                else:
+                    _df[TAG_WARNING_DESCRIPTION] = None
+                    _df["flag_warning"] = False
+                list_ko_rows.append(_df)
+
+        drop_columns_list = [TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION, "flag_warning"]
+
         df = pd.concat(list_ko_rows, ignore_index=True)
         column_list = list(df.columns)
-        column_list.remove(TAG_CHECK_DESCRIPTION)
-        df = df.groupby(column_list, dropna=False)[TAG_CHECK_DESCRIPTION].apply(" - ".join).reset_index()
-
-        if (self.index_column is not None) and (not self.index_problem):
-            df0 = df.drop([TAG_CHECK_DESCRIPTION], axis=1)
-            df1 = df[[self.index_column, TAG_CHECK_DESCRIPTION]]
+        column_list = [a for a in column_list if a not in drop_columns_list]
+        df = df.groupby(column_list, dropna=False).agg({TAG_CHECK_DESCRIPTION: set,
+                                                        TAG_WARNING_DESCRIPTION: set,
+                                                        "flag_warning": min}).reset_index()
+        df[TAG_CHECK_DESCRIPTION] = df[TAG_CHECK_DESCRIPTION].apply(lambda x: " - ".join([a for a in x if a is not None]))
+        df[TAG_WARNING_DESCRIPTION] = df[TAG_WARNING_DESCRIPTION].apply(lambda x: " - ".join([a for a in x if a is not None]))
+        if (df.shape[0] > 0) and (self.index_column is not None) and (not self.index_problem):
+            df0 = df.drop(drop_columns_list, axis=1)
+            df1 = df[[self.index_column] + drop_columns_list]
             df0 = df0.groupby(self.index_column).transform(lambda x: x.fillna(x.min()))
-            df1 = df1.groupby(self.index_column, dropna=False)[TAG_CHECK_DESCRIPTION].apply(" - ".join).reset_index()
+            df1 = df1.groupby(self.index_column, dropna=False).agg({TAG_CHECK_DESCRIPTION: set,
+                                                                    TAG_WARNING_DESCRIPTION: set,
+                                                                    "flag_warning": min}).reset_index()
+            df1[TAG_CHECK_DESCRIPTION] = df1[TAG_CHECK_DESCRIPTION].apply(
+                lambda x: " - ".join([a for a in x if a is not None]))
+            df1[TAG_WARNING_DESCRIPTION] = df1[TAG_WARNING_DESCRIPTION].apply(
+                lambda x: " - ".join([a for a in x if a is not None]))
             df = df0.join(df1, how="left", on=self.index_column)
-
+        df["flag_only_warning"] = df[TAG_CHECK_DESCRIPTION].str.len() == 0
         self.ko_rows = df
-        return df
+        return
 
     def get_ko_rows(self,
                     reset: bool = False,
-                    consider_warning: bool = True,
+                    consider_warnings: bool = True,
                     output_columns: Union[List[str], None] = None) -> pd.DataFrame:
         if reset or self.ko_rows is None:
-            df = self._create_ko_rows(consider_warning=consider_warning)
-        else:
-            df = self.ko_rows
+            self._create_ko_rows()
+        df = self.ko_rows.copy()
+        if not consider_warnings:
+            df.drop([TAG_WARNING_DESCRIPTION], axis=1, inplace=True)
+            df = df[~df["flag_only_warning"]]
         if output_columns is not None:
             df.drop([col for col in df.columns if col in output_columns], axis=1, inplace=True)
         return df
@@ -197,19 +254,15 @@ class Table:
             self.df = df
 
     @validate
-    def get_number_of_rows(self) -> int:
-        if self.flag_dataframe:
-            result = self.df.shape[0]
-        else:
-            filter_sql = _aggregate_sql_filter(self.table_filter)
-
-            query = f"""
-            SELECT 
-                count(*) as n_rows
-            from {self.db_name}
-            {filter_sql}
-            """
-            result = self.source.run_query(query)["n_rows"].values[0]
+    def query_number_of_rows(self) -> int:
+        filter_sql = _aggregate_sql_filter(self.table_filter)
+        query = f"""
+        SELECT 
+            count(*) as n_rows
+        from {self.db_name}
+        {filter_sql}
+        """
+        result = self.source.run_query(query)["n_rows"].values[0]
         self.n_rows = result
         return result
 
@@ -217,13 +270,13 @@ class Table:
 
     @validate
     def check_index_not_null(self,
-                             ignore_filter: str = False,
-                             columns_not_null: Union[str, List[str], None] = None,
+                             ignore_filter: Optional[str] = None,
+                             columns_not_null: Optional[Union[str, List[str]]] = None,
                              get_rows_flag: bool = False,
-                             output_columns: Union[List[str], str] = None,
+                             output_columns: Optional[Union[List[str], str]] = None,
                              flag_warning: bool = False,
-                             check_description: str = None,
-                             n_max_rows_output: Union[int, None] = None) -> Optional[int]:
+                             check_description: Optional[str] = None,
+                             n_max_rows_output: Optional[int] = None) -> Optional[int]:
 
         if self.index_column is not None:
             check = IndexNull(self)
@@ -242,12 +295,12 @@ class Table:
 
     @validate
     def check_duplicates_index(self,
-                               ignore_filter: str = False,
+                               ignore_filter: Union[str, None] = None,
                                columns_not_null: Union[str, List[str], None] = None,
                                get_rows_flag: bool = False,
-                               output_columns: Union[List[str], str] = None,
+                               output_columns: Union[List[str], str, None] = None,
                                flag_warning: bool = False,
-                               check_description: str = None,
+                               check_description: Union[List[str], str, None] = None,
                                n_max_rows_output: Union[int, None] = None) -> Optional[int]:
 
         if self.index_column is not None:
@@ -268,10 +321,10 @@ class Table:
     @validate
     def check_not_empthy_column(self,
                                 columns: Union[str, list] = None,
-                                ignore_filter: str = False,
+                                ignore_filter: Union[str, None] = None,
                                 columns_not_null: Union[str, List[str], None] = None,
                                 get_rows_flag: bool = False,
-                                output_columns: Union[List[str], str] = None,
+                                output_columns: Union[List[str], str, None] = None,
                                 flag_warning: bool = False,
                                 check_description: str = None,
                                 n_max_rows_output: Union[int, None] = None) -> Union[int, dict, None]:
@@ -319,12 +372,12 @@ class Table:
     def check_datetime_format(self,
                               columns: Union[str, list, None] = None,
                               datetime_formats: Union[str, list, None] = None,
-                              ignore_filter: str = False,
+                              ignore_filter: Union[str, None] = None,
                               columns_not_null: Union[str, List[str], None] = None,
                               get_rows_flag: bool = False,
-                              output_columns: Union[List[str], str] = None,
+                              output_columns: Union[List[str], str, None] = None,
                               flag_warning: bool = False,
-                              check_description: str = None,
+                              check_description: Union[List[str], str] = None,
                               n_max_rows_output: Union[int, None] = None) -> Union[int, dict, None]:
 
         if columns is not None:
@@ -346,41 +399,11 @@ class Table:
 
     @validate
     def run_basic_check(self,
-                        ignore_filter: str = False,
-                        columns_not_null: Union[str, List[str], None] = None,
-                        get_rows_flag: bool = False,
-                        output_columns: Union[List[str], str] = None,
-                        flag_warning: bool = False,
-                        check_description: str = None,
-                        n_max_rows_output: Union[int, None] = None):
-        self.check_index_not_null(get_rows_flag=get_rows_flag,
-                                  flag_warning=flag_warning,
-                                  check_description=check_description,
-                                  n_max_rows_output=n_max_rows_output,
-                                  ignore_filter=ignore_filter,
-                                  columns_not_null=columns_not_null,
-                                  output_columns=output_columns)
-        self.check_duplicates_index(get_rows_flag=get_rows_flag,
-                                    flag_warning=flag_warning,
-                                    check_description=check_description,
-                                    n_max_rows_output=n_max_rows_output,
-                                    ignore_filter=ignore_filter,
-                                    columns_not_null=columns_not_null,
-                                    output_columns=output_columns)
-        self.check_not_empthy_column(get_rows_flag=get_rows_flag,
-                                     flag_warning=flag_warning,
-                                     check_description=check_description,
-                                     n_max_rows_output=n_max_rows_output,
-                                     ignore_filter=ignore_filter,
-                                     columns_not_null=columns_not_null,
-                                     output_columns=output_columns)
-        self.check_datetime_format(get_rows_flag=get_rows_flag,
-                                   flag_warning=flag_warning,
-                                   check_description=check_description,
-                                   n_max_rows_output=n_max_rows_output,
-                                   ignore_filter=ignore_filter,
-                                   columns_not_null=columns_not_null,
-                                   output_columns=output_columns)
+                        **kwargs):
+        self.check_index_not_null(**kwargs)
+        self.check_duplicates_index(**kwargs)
+        self.check_not_empthy_column(**kwargs)
+        self.check_datetime_format(**kwargs)
 
     @validate
     def check_columns_between_values(self,
@@ -389,12 +412,12 @@ class Table:
                                      max_value: float = None,
                                      min_included: bool = True,
                                      max_included: bool = True,
-                                     ignore_filter: str = False,
+                                     ignore_filter: Union[str, None] = None,
                                      columns_not_null: Union[str, List[str], None] = None,
                                      get_rows_flag: bool = False,
-                                     output_columns: Union[List[str], str] = None,
+                                     output_columns: Union[List[str], str, None] = None,
                                      flag_warning: bool = False,
-                                     check_description: str = None,
+                                     check_description: Union[str, None] = None,
                                      n_max_rows_output: Union[int, None] = None) -> Union[int, dict, None]:
         if isinstance(columns, str):
             check = ColumnBetweenValues(self,
@@ -436,12 +459,12 @@ class Table:
                                     max_date: Union[str, date, datetime] = None,
                                     min_included: bool = True,
                                     max_included: bool = True,
-                                    ignore_filter: str = False,
+                                    ignore_filter: Union[str, None] = None,
                                     columns_not_null: Union[str, List[str], None] = None,
                                     get_rows_flag: bool = False,
-                                    output_columns: Union[List[str], str] = None,
+                                    output_columns: Union[List[str], str, None] = None,
                                     flag_warning: bool = False,
-                                    check_description: str = None,
+                                    check_description: Union[str, None] = None,
                                     n_max_rows_output: Union[int, None] = None) -> Union[int, dict, None]:
         self.set_datetime_columns(columns, datetime_formats=datetime_formats, replace_formats=False)
         if isinstance(columns, str):
@@ -480,12 +503,12 @@ class Table:
     def check_date_column_not_in_future(self,
                                         column: Union[str, list],
                                         include: bool = True,
-                                        ignore_filter: str = False,
+                                        ignore_filter: Union[str, None] = None,
                                         columns_not_null: Union[str, List[str], None] = None,
                                         get_rows_flag: bool = False,
-                                        output_columns: Union[List[str], str] = None,
+                                        output_columns: Union[List[str], str, None] = None,
                                         flag_warning: bool = False,
-                                        check_description: str = None,
+                                        check_description: Union[str, None] = None,
                                         n_max_rows_output: Union[int, None] = None) -> Union[int, dict, None]:
         now = datetime.now()
         return self.check_columns_between_dates(column,
@@ -503,12 +526,12 @@ class Table:
     def check_dates_order(self,
                           ascending_columns: list,
                           strictly_ascending: bool = False,
-                          ignore_filter: str = False,
+                          ignore_filter: Union[str, None] = None,
                           columns_not_null: Union[str, List[str], None] = None,
                           get_rows_flag: bool = False,
-                          output_columns: Union[List[str], str] = None,
+                          output_columns: Union[List[str], str, None] = None,
                           flag_warning: bool = False,
-                          check_description: str = None,
+                          check_description: Union[str, None] = None,
                           n_max_rows_output: Union[int, None] = None) -> int:
         check = DatesOrder(
             self,
@@ -527,12 +550,12 @@ class Table:
     def check_values_order(self,
                            ascending_columns: list,
                            strictly_ascending: bool = False,
-                           ignore_filter: str = False,
+                           ignore_filter: Union[str, None] = None,
                            columns_not_null: Union[str, List[str], None] = None,
                            get_rows_flag: bool = False,
-                           output_columns: Union[List[str], str] = None,
+                           output_columns: Union[List[str], str, None] = None,
                            flag_warning: bool = False,
-                           check_description: str = None,
+                           check_description: Union[str, None] = None,
                            n_max_rows_output: Union[int, None] = None) -> int:
         check = ValuesOrder(
             self,
@@ -552,12 +575,12 @@ class Table:
                              columns: Union[str, list],
                              values_list: list,
                              case_sensitive: bool = True,
-                             ignore_filter: str = False,
+                             ignore_filter: Union[str, None] = None,
                              columns_not_null: Union[str, List[str], None] = None,
                              get_rows_flag: bool = False,
-                             output_columns: Union[List[str], str] = None,
+                             output_columns: Union[List[str], str, None] = None,
                              flag_warning: bool = False,
-                             check_description: str = None,
+                             check_description: Union[str, None] = None,
                              n_max_rows_output: Union[int, None] = None) -> Union[int, dict, None]:
         if isinstance(columns, str):
             check = ValuesInList(self,
@@ -592,13 +615,13 @@ class Table:
     def check_column_match_regex(self,
                                  columns: Union[str, list],
                                  regex: str,
-                                 ignore_filter: str = False,
+                                 ignore_filter: Union[str, None] = None,
                                  columns_not_null: Union[str, List[str], None] = None,
                                  case_sensitive: bool = True,
                                  get_rows_flag: bool = False,
-                                 output_columns: Union[List[str], str] = None,
+                                 output_columns: Union[List[str], str, None] = None,
                                  flag_warning: bool = False,
-                                 check_description: str = None,
+                                 check_description: Union[str, None] = None,
                                  n_max_rows_output: Union[int, None] = None) -> Union[int, dict, None]:
         if isinstance(columns, str):
             check = MatchRegex(self,
@@ -631,11 +654,11 @@ class Table:
     @validate
     def check_custom_condition(self,
                                negative_condition: str,
-                               ignore_condition: str = None,
-                               check_description: str = None,
+                               ignore_condition: Union[str, None] = None,
+                               check_description: Union[str, None] = None,
                                columns_not_null: Union[str, list] = None,
                                get_rows_flag: bool = False,
-                               output_columns: Union[List[str], str] = None,
+                               output_columns: Union[List[str], str, None] = None,
                                flag_warning: bool = False,
                                n_max_rows_output: Union[int, None] = None) -> int:
 
@@ -660,11 +683,11 @@ class Table:
                                           foreign_keys: Union[str, list],
                                           dimension_table,
                                           primary_keys: Union[str, list] = None,
-                                          ignore_filter: str = False,
+                                          ignore_filter: Union[str, None] = None,
                                           columns_not_null: Union[str, List[str], None] = None,
                                           get_rows_flag: bool = False,
-                                          output_columns: Union[List[str], str] = None,
-                                          check_description: str = None,
+                                          output_columns: Union[List[str], str, None] = None,
+                                          check_description: Union[str, None] = None,
                                           flag_warning: bool = False,
                                           n_max_rows_output: Union[int, None] = None) -> int:
         check = MatchDImensionTable(
@@ -680,3 +703,19 @@ class Table:
                                 columns_not_null=columns_not_null,
                                 output_columns=output_columns)
         return check.check(get_rows_flag=get_rows_flag)
+
+    def create_html_output(self,
+                           title: str = None,
+                           sort_by_n_ko: bool = True,
+                           consider_warnings: bool = True,
+                           filter_only_ko: bool = True,
+                           save_in_path: str = None,
+                           show_flag: bool = False):
+
+        plot_table_results(self,
+                           title=title,
+                           sort_by_n_ko=sort_by_n_ko,
+                           consider_warnings=consider_warnings,
+                           filter_only_ko=filter_only_ko,
+                           save_in_path=save_in_path,
+                           show_flag=show_flag)

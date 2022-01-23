@@ -1,13 +1,11 @@
 import unittest
 import logging
-from datetime import datetime
 
 import pandas as pd
-from pandas._testing import assert_frame_equal, assert_series_equal
+from pandas._testing import assert_frame_equal
 
 from data_quality.src.data_quality_holder import DataQualitySession
 from data_quality.src.utils import FISCALCODE_REGEX
-from data_quality.src.check import TAG_CHECK_DESCRIPTION
 
 
 def get_dataframe_for_test(sheet_name):

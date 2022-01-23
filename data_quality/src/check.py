@@ -7,6 +7,7 @@ from data_quality.src.utils import _create_filter_columns_not_null, _aggregate_s
     _query_limit
 
 TAG_CHECK_DESCRIPTION = "check_description"
+TAG_WARNING_DESCRIPTION = "warning_description"
 
 
 class Check(ABC):
@@ -38,12 +39,12 @@ class Check(ABC):
         pass
 
     def initialize_params(self,
-                          check_description: str = None,
+                          check_description: Union[str, None] = None,
                           flag_warning: bool = False,
                           n_max_rows_output: Union[int, None] = None,
                           ignore_filter: Union[str, None] = None,
                           columns_not_null: Union[int, None] = None,
-                          output_columns: Union[List[str], str] = None
+                          output_columns: Union[List[str], str, None] = None
                           ):
         # TODO add long description
         if check_description is not None:
