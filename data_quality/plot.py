@@ -1,6 +1,6 @@
 import os
 import math
-from typing import Union, List
+from typing import Union, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -9,6 +9,7 @@ from bokeh.models import (Label, Button, CustomJS, ColumnDataSource, Div)
 from bokeh.models.widgets import DataTable, TableColumn, Panel, Tabs
 from bokeh.layouts import column, row, Spacer
 from bokeh.io import output_file, show
+from valdec.decorators import validate
 
 from data_quality.src.utils import _human_format, _human_format_perc
 from data_quality.src.check import TAG_CHECK_DESCRIPTION
@@ -119,10 +120,7 @@ def plot_table_results(table,
                        filter_only_ko: bool = True,
                        save_in_path: str = None,
                        show_flag: bool = False):
-
-    n_rows = table.get_number_of_rows()
-    n_checks = table.get_number_checks(consider_warnings=False)
-    n_warning_checks = table.get_number_warning_checks()
+    table.calculate_result_info()
     show_warning = table.any_warning(flag_only_fail=filter_only_ko) and consider_warnings
 
     plots = []
@@ -161,7 +159,7 @@ def plot_table_results(table,
               text_color="black"))
 
     p.add_layout(
-        Label(x=0.01, y=0.5, text=f"Total number of rows: {_human_format(n_rows)}",
+        Label(x=0.01, y=0.5, text=f"Total number of rows: {_human_format(table.n_rows)}",
               text_font_style="bold",
               text_font_size="20pt",
               text_baseline="middle",
@@ -169,7 +167,7 @@ def plot_table_results(table,
               text_color="black"))
 
     p.add_layout(
-        Label(x=0.01, y=0.25, text=f"# Setted checks: {_human_format(n_checks)}",
+        Label(x=0.01, y=0.25, text=f"# Setted checks: {_human_format(table.n_checks)}",
               text_font_style="bold",
               text_font_size="15pt",
               text_baseline="middle",
@@ -178,7 +176,7 @@ def plot_table_results(table,
     if show_warning:
         p.add_layout(
             Label(x=0.01, y=0.15,
-                  text=f"# Warning checks: {_human_format(n_warning_checks)}",
+                  text=f"# Warning checks: {_human_format(table.n_warning_checks)}",
                   text_font_style="bold",
                   text_font_size="15pt",
                   text_baseline="middle",
@@ -186,15 +184,15 @@ def plot_table_results(table,
                   text_color="black"))
 
     if not table.over_n_max_rows_output(consider_warnings=False):
-        n_problems = table.get_unique_number_ko(consider_warnings=False)
+        n_problems = table.number_unique_rows_ko
         text = f"# Rows with a problem: {_human_format(n_problems)}"
         prefix = ""
     else:
-        max_n_problems = min(table.get_number_ko(consider_warnings=False), n_rows)
-        min_n_problems = table.get_max_number_ko(consider_warnings=False)
+        max_n_problems = min(table.total_number_ko, table.n_rows)
+        min_n_problems = table.max_number_ko
         n_problems = min_n_problems
-        text = f"# Problems : {_human_format(table.get_number_ko(consider_warnings=False))}"
-        if (max_n_problems - min_n_problems) / n_rows > 0.01:
+        text = f"# Problems : {_human_format(table.total_number_ko)}"
+        if (max_n_problems - min_n_problems) / table.n_rows > 0.01:
             prefix = ">"
         else:
             prefix = "≈"
@@ -208,15 +206,15 @@ def plot_table_results(table,
 
     if table.any_warning(flag_only_fail=filter_only_ko) and consider_warnings:
         if not table.over_n_max_rows_output(consider_warnings=True):
-            n_warning = table.get_unique_number_warnings()
+            n_warning = table.number_unique_rows_warning
             text = f"# Rows with a warning: {_human_format(n_warning)}"
             prefix = ""
         else:
-            max_n_warnings = min(table.get_number_warnings(), n_rows)
-            min_n_warnings = table.get_max_number_warnings()
+            max_n_warnings = min(table.total_number_warnings, table.n_rows)
+            min_n_warnings = table.max_number_warnings
             n_warning = min_n_warnings
-            text = f"# Warnings : {_human_format(table.get_number_warnings())}"
-            if (max_n_warnings - min_n_warnings) / n_rows > 0.01:
+            text = f"# Warnings : {_human_format(table.n_warning_checks)}"
+            if (max_n_warnings - min_n_warnings) / table.n_rows > 0.01:
                 prefix = ">"
             else:
                 prefix = "≈"
@@ -227,12 +225,12 @@ def plot_table_results(table,
                   text_baseline="middle",
                   text_align="left",
                   text_color="black"))
-        gauge_plot = _create_gauge_plot([n_problems / n_rows, n_warning / n_rows],
+        gauge_plot = _create_gauge_plot([n_problems / table.n_rows, n_warning / table.n_rows],
                                         prefix=prefix,
                                         font_size=36,
                                         colors=["green", "orange", "red"], width=gauge_width, height=gauge_width)
     else:
-        gauge_plot = _create_gauge_plot(n_problems / n_rows,
+        gauge_plot = _create_gauge_plot(n_problems / table.n_rows,
                                         prefix=prefix,
                                         font_size=36,
                                         colors=["green", "red"], width=gauge_width, height=gauge_width)
@@ -247,7 +245,7 @@ def plot_table_results(table,
 
     for check in check_list:
         if (not filter_only_ko) or (check.n_ko > 0):
-            perc_ko = check.n_ko / n_rows
+            perc_ko = check.n_ko / table.n_rows
             warning_icon_size = 40
             width_labels = WIDTH - warning_icon_size
             check_label = Div(text=check.check_description, width=int(width_labels * 2 / 3), style={'font-size': '20pt'})
@@ -267,7 +265,10 @@ def plot_table_results(table,
                         except:
                             pass
                 columns = [TableColumn(field=c, title=c) for c in df_plot.columns]
+                row_height = 30
+                table_height = min(row_height * (df_plot.shape[0] + 1), 600)
                 data_table = DataTable(columns=columns, source=ColumnDataSource(df_plot), width=WIDTH,
+                                       height=table_height,
                                        index_position=None)
                 data_table.visible = False
                 if check.flag_over_max_rows:
@@ -319,3 +320,48 @@ def plot_table_results(table,
         else:
             os.startfile(save_in_path)
     return plot
+
+@validate
+def plot_session_results(session,
+                         title: Optional[str] = None,
+                         sort_by_n_ko: bool = True,
+                         consider_warnings: bool = True,
+                         filter_only_ko: bool = True,
+                         save_in_path: Optional[str] = None,
+                         show_flag: bool = False):
+    if len(session.tables) == 1:
+        session.tables[0].create_html_output(
+            title=title,
+            sort_by_n_ko=sort_by_n_ko,
+            consider_warnings=consider_warnings,
+            filter_only_ko=filter_only_ko,
+            save_in_path=save_in_path,
+            show_flag=show_flag)
+    elif len(session.tables) > 1:
+        plots = []
+        for table in session.tables:
+            plot = table.create_html_output(sort_by_n_ko=sort_by_n_ko,
+                                            consider_warnings=consider_warnings,
+                                            filter_only_ko=filter_only_ko,
+                                            save_in_path=None,
+                                            show_flag=False)
+            if table.output_name is not None:
+                t = table.output_name
+            else:
+                t = table.db_name.split(".")[-1]
+            tab1 = Panel(child=plot, title=t)
+            plots.append(tab1)
+        tabs = Tabs(tabs=plots)
+        tabs = column(tabs)
+        if title is not None:
+            p = Div(text=title, width=1200, height=100, style={'font-size': '30pt',
+                                                               'text-align': 'center'})
+            tabs = column(p, tabs)
+        if save_in_path is not None:
+            output_file(save_in_path, mode='inline')
+            save(tabs)
+        if show_flag:
+            if save_in_path is None:
+                show(tabs)
+            else:
+                os.startfile(save_in_path)

@@ -5,6 +5,7 @@ from copy import deepcopy
 
 import pandas as pd
 
+from data_quality.plot import plot_session_results
 from data_quality.src.table import Table
 from data_quality.src.sources import Sources
 
@@ -55,3 +56,8 @@ class DataQualitySession(object):
             new_table.output_name = output_name
         self.tables.append(new_table)
         return new_table
+
+    @validate
+    def create_html_output(self, **kargs):
+
+        plot_session_results(self, **kargs)

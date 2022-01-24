@@ -62,6 +62,14 @@ class Table:
         self.passed_all_checks = True
         self.check_list = []
         self.ko_rows = None
+        self.n_checks = None
+        self.n_warning_checks = None
+        self.total_number_ko = None
+        self.total_number_warnings = None
+        self.number_unique_rows_ko = None
+        self.number_unique_rows_warning = None
+        self.max_number_ko = None
+        self.max_number_warnings = None
 
     @validate
     def set_table_filer(self, sql_filter: Optional[str]):
@@ -111,23 +119,26 @@ class Table:
             columns_list = list(dict.fromkeys(columns_list))
         self.output_columns = columns_list
 
+    def calculate_result_info(self):
+        self.get_number_of_rows()
+        self.n_checks = len([a for a in self.check_list if not a.flag_warning])
+        self.n_warning_checks = len([a for a in self.check_list if a.flag_warning])
+        self._create_ko_rows()
+        if not any([a.flag_over_max_rows for a in self.check_list if not a.flag_warning]):
+            df = self.get_ko_rows(consider_warnings=False)
+            self.number_unique_rows_ko = df.shape[0]
+        if not any([a.flag_over_max_rows for a in self.check_list if a.flag_warning]):
+            df = self.get_ko_rows(consider_warnings=True)
+            self.number_unique_rows_warning = df[df["flag_only_warning"]].shape[0]
+        self.max_number_ko = max([a.n_ko for a in self.check_list if not a.flag_warning], default=0)
+        self.max_number_warnings = max([a.n_ko for a in self.check_list if a.flag_warning], default=0)
+
     def get_number_of_rows(self, refresh: bool = False):
         if self.flag_dataframe:
-            return self.df.shape[0]
+            self.n_rows = self.df.shape[0]
         elif (self.n_rows is None) or refresh:
             self.query_number_of_rows()
         return self.n_rows
-
-    def get_number_checks(self, consider_warnings: bool = True) -> int:
-        if consider_warnings:
-            return len(self.check_list)
-        else:
-            checks = [a for a in self.check_list if not a.flag_warning]
-            return len(checks)
-
-    def get_number_warning_checks(self):
-        checks = [a for a in self.check_list if a.flag_warning]
-        return len(checks)
 
     def passed_all_checks(self, consider_warnings: bool = False) -> bool:
         failed_checks = [a for a in self.check_list if a.flag_ko]
@@ -141,45 +152,11 @@ class Table:
         else:
             return any([a.flag_over_max_rows for a in self.check_list if not a.flag_warning])
 
-    def get_unique_number_ko(self,
-                             consider_warnings: bool = True):
-        if self.over_n_max_rows_output(consider_warnings=consider_warnings):
-            raise Exception("Unable to get the number of unique rows ko because you have reached the max number of rows on output in one check.")
-        else:
-            ko_rows = self.get_ko_rows(consider_warnings=consider_warnings)
-            return ko_rows.shape[0]
-
-    def get_unique_number_warnings(self):
-        if self.over_n_max_rows_output(consider_warnings=True):
-            raise Exception(
-                "Unable to get the number of unique rows ko because you have reached the max number of rows on output in one check.")
-        else:
-            ko_rows = self.get_ko_rows(consider_warnings=True)
-            return ko_rows[ko_rows["flag_only_warning"]].shape[0]
-
-    def get_number_ko(self, consider_warnings: bool = True):
-        if consider_warnings:
-            return sum([a.n_ko for a in self.check_list])
-        else:
-            return sum([a.n_ko for a in self.check_list if not a.flag_warning])
-
-    def get_number_warnings(self):
-        return sum([a.n_ko for a in self.check_list if a.flag_warning])
-
     def any_warning(self, flag_only_fail: True):
         if flag_only_fail:
             return len([a for a in self.check_list if (a.flag_warning) and (a.n_ko > 0)]) > 0
         else:
             return len([a for a in self.check_list if a.flag_warning]) > 0
-
-    def get_max_number_ko(self, consider_warnings: bool = True):
-        if consider_warnings:
-            return max([a.n_ko for a in self.check_list])
-        else:
-            return max([a.n_ko for a in self.check_list if not a.flag_warning])
-
-    def get_max_number_warnings(self):
-        return max([a.n_ko for a in self.check_list if a.flag_warning])
 
     def _create_ko_rows(self):
         list_ko_rows = []
@@ -254,7 +231,7 @@ class Table:
             self.df = df
 
     @validate
-    def query_number_of_rows(self) -> int:
+    def query_number_of_rows(self):
         filter_sql = _aggregate_sql_filter(self.table_filter)
         query = f"""
         SELECT 
@@ -263,7 +240,6 @@ class Table:
         {filter_sql}
         """
         result = self.source.run_query(query)["n_rows"].values[0]
-        self.n_rows = result
         return result
 
     # Check methods
@@ -712,10 +688,10 @@ class Table:
                            save_in_path: str = None,
                            show_flag: bool = False):
 
-        plot_table_results(self,
-                           title=title,
-                           sort_by_n_ko=sort_by_n_ko,
-                           consider_warnings=consider_warnings,
-                           filter_only_ko=filter_only_ko,
-                           save_in_path=save_in_path,
-                           show_flag=show_flag)
+        return plot_table_results(self,
+                               title=title,
+                               sort_by_n_ko=sort_by_n_ko,
+                               consider_warnings=consider_warnings,
+                               filter_only_ko=filter_only_ko,
+                               save_in_path=save_in_path,
+                               show_flag=show_flag)
