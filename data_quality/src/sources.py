@@ -7,7 +7,7 @@ from data_quality.src.sources_types.bigquery import BigQuery
 from data_quality.src.sources_types.impala import Impala
 from data_quality.src.table import Table
 
-DEFAULT_MAX_ROWS_OUTPUT = 10000
+DEFAULT_MAX_ROWS_OUTPUT = 1000
 
 
 class Sources(object):
@@ -25,6 +25,7 @@ class Sources(object):
         self.cast_datetime_sql = None
         self.cast_float_sql = None
         self.match_regex = None
+        self.datetime_format_replace_dictionary = None
         self.set_source_type(type_sources)
         self.n_max_rows_output = n_max_rows_output
 
@@ -74,13 +75,26 @@ class Sources(object):
         if match_regex is not None:
             self.match_regex = match_regex
 
+        # Replace format datetime
+        datetime_format_replace_dictionary = None
+        for source_type in self.list_source_type:
+            if datetime_format_replace_dictionary is None:
+                check = source_type.check_datetime_format_replace()
+                if check:
+                    datetime_format_replace_dictionary = source_type.datetime_format_replace_dictionary
+        if datetime_format_replace_dictionary is not None:
+            self.datetime_format_replace_dictionary = datetime_format_replace_dictionary
+        else:
+            raise Exception("Unable to query db for datetime formats.")
+
     def check_query_function(self):
             query = """
             SELECT 
-                1 as A
+                1 as a
             """
             df = self.run_query(query)
-            if (df["A"] == 1).sum() != 1:
+            if (df["a"] == 1).sum() != 1:
+                
                 raise Exception("Unable to query on database. Check your run_query_function.")
 
     def set_sql_functons(self, type_sources):
@@ -96,6 +110,11 @@ class Sources(object):
         for source_type in self.list_source_type:
             if type_sources.lower() == source_type.name:
                 self.match_regex = source_type.match_regex
+
+        # Replace format datetime
+        for source_type in self.list_source_type:
+            if type_sources.lower() == source_type.name:
+                self.datetime_format_replace_dictionary = source_type.datetime_format_replace_dictionary
 
     def create_table(self,
                      name: str,

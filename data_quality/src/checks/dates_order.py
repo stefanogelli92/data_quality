@@ -51,7 +51,7 @@ class DatesOrder(Check):
                         {sql_cast_datetime}
                     from {self.table.db_name}
                     {ignore_filters}
-                    )
+                    ) as cast_table
                 group by check
                 """
         df = self.table.source.run_query(query)
@@ -85,7 +85,7 @@ class DatesOrder(Check):
                 {sql_cast_datetime}
             from {self.table.db_name}
             {ignore_filters}
-            )
+            ) as cast_table
         WHERE 
         {negative_filter}
         {sql_limit}

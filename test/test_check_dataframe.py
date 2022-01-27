@@ -4,7 +4,7 @@ import logging
 import pandas as pd
 from pandas._testing import assert_frame_equal
 
-from data_quality.src.data_quality_holder import DataQualitySession
+from data_quality.data_quality_holder import DataQualitySession
 from data_quality.src.utils import FISCALCODE_REGEX
 
 
@@ -224,6 +224,15 @@ class TestCheckDataframe(unittest.TestCase):
                            df[df["check_description"].notnull()],
                            check_names=False, check_dtype=False
                            )
+
+    def test_create_result_df(self):
+        df = get_dataframe_for_test("fact_table")
+        dq_session = DataQualitySession()
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1), index_column="index",
+                                                            not_empthy_columns=["dimension_id"])
+        test_table.run_basic_check()
+        test_table.check_values_in_list("dimension_code", ["a", "b", "c", "d"])
+        test_table.get_ko_rows()
 
 
 if __name__ == '__main__':

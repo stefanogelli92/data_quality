@@ -5,7 +5,7 @@ from copy import deepcopy
 
 import pandas as pd
 
-from data_quality.plot import plot_session_results
+from data_quality.src.plot import plot_session_results
 from data_quality.src.table import Table
 from data_quality.src.sources import Sources
 

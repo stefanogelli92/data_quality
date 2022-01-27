@@ -52,7 +52,7 @@ class IndexDuplicate(Check):
                     count(*) OVER (PARTITION BY cast({self.index_col} as string)) as n_distinct_index
                 from {self.table.db_name}
                 {ignore_filters}
-            ) a 
+            ) as cast_table 
             WHERE a.n_distinct_index > 1
             {sql_limit}
         """

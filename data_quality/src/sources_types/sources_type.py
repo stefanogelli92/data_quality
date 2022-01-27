@@ -6,6 +6,7 @@ class SourceType(ABC):
     def __init__(self, run_query_function):
         self.run_query_function = run_query_function
         self.name = None
+        self.datetime_format_replace_dictionary = None
 
     @abstractmethod
     def check_cast_datetime(self) -> bool:
@@ -29,4 +30,8 @@ class SourceType(ABC):
 
     @abstractmethod
     def match_regex(self, column_name: str, regex: str, case_sensitive: bool = True) -> str:
+        pass
+
+    @abstractmethod
+    def check_datetime_format_replace(self) -> bool:
         pass

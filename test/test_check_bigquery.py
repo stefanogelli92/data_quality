@@ -1,13 +1,11 @@
 import unittest
 import logging
-from datetime import datetime
 
 import pandas as pd
-from pandas._testing import assert_frame_equal, assert_series_equal
+from pandas._testing import assert_frame_equal
 
-from data_quality.src.data_quality_holder import DataQualitySession
+from data_quality.data_quality_holder import DataQualitySession
 from data_quality.src.utils import FISCALCODE_REGEX
-from data_quality.src.check import TAG_CHECK_DESCRIPTION
 
 from google.cloud import bigquery
 
@@ -130,6 +128,17 @@ class TestCheckSQL(unittest.TestCase):
         test_table = bigquery.create_table(DBBIGQUERY + db_name,
                                            datetime_columns="A",
                                            datetime_formats="yyyy/MM/dd",
+                                           )
+        result_df = get_dataframe_for_test(db_name)
+        test_table.check_datetime_format(get_rows_flag=True)
+        check_results(result_df, test_table)
+
+    def test_datetime_format3(self):
+        db_name = "datetime_format2"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name,
+                                           datetime_columns="A",
                                            )
         result_df = get_dataframe_for_test(db_name)
         test_table.check_datetime_format(get_rows_flag=True)

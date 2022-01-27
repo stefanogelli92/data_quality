@@ -50,7 +50,10 @@ class Check(ABC):
         if check_description is not None:
             self.check_description = check_description
         self.flag_warning = flag_warning
-        self.n_max_rows_output = n_max_rows_output
+        if n_max_rows_output is not None:
+            self.n_max_rows_output = n_max_rows_output
+        else:
+            self.n_max_rows_output = self.table.n_max_rows_output
         self.ignore_filters = []
         self.add_ignore_filter(ignore_filter)
         self.columns_not_null = columns_not_null

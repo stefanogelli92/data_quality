@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 import pandas as pd
 
-from data_quality.plot import plot_table_results
+from data_quality.src.plot import plot_table_results
 from data_quality.src.utils import _clean_sql_filter, _aggregate_sql_filter, _output_column_to_sql, _query_limit
 from data_quality.src.check import TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION
 from data_quality.src.checks.index_null import IndexNull
@@ -108,7 +108,24 @@ class Table:
                     raise Exception("Len of datetime formats != len datetime columns")
             for i in range(len(columns_list)):
                 if replace_formats or (columns_list[i] not in self.datetime_columns):
-                    self.datetime_columns[columns_list[i]] = datetime_formats[i]
+                    if (datetime_formats[i] is not None) or self.flag_dataframe:
+                        self.datetime_columns[columns_list[i]] = datetime_formats[i]
+                    else:
+                        self.datetime_columns[columns_list[i]] = self._find_datetime_format(columns_list[i])
+
+    def _find_datetime_format(self, column_name):
+        result = None
+        query = f"""select {column_name} from {self.db_name} where {column_name} is not null limit 100"""
+        df = self.source.run_query(query)
+        is_datetime = df[df.columns[0]].apply(lambda x: isinstance(x, (datetime, date))).mean() > 0.5
+        if not is_datetime:
+            formats = df[df.columns[0]].apply(lambda x: pd._libs.tslibs.parsing.guess_datetime_format(x)).mode().values
+            if len(formats) > 0:
+                result = formats[0]
+                format_replace = self.source.datetime_format_replace_dictionary
+                for k, v in format_replace.items():
+                    result = result.replace(k, v)
+        return result
 
     @validate
     def set_output_columns(self, columns_list: Union[List[str], str, None]):
@@ -132,13 +149,14 @@ class Table:
             self.number_unique_rows_warning = df[df["flag_only_warning"]].shape[0]
         self.max_number_ko = max([a.n_ko for a in self.check_list if not a.flag_warning], default=0)
         self.max_number_warnings = max([a.n_ko for a in self.check_list if a.flag_warning], default=0)
+        self.total_number_ko = sum([a.n_ko for a in self.check_list if not a.flag_warning])
+        self.total_number_warnings = sum([a.n_ko for a in self.check_list if a.flag_warning])
 
     def get_number_of_rows(self, refresh: bool = False):
         if self.flag_dataframe:
             self.n_rows = self.df.shape[0]
         elif (self.n_rows is None) or refresh:
             self.query_number_of_rows()
-        return self.n_rows
 
     def passed_all_checks(self, consider_warnings: bool = False) -> bool:
         failed_checks = [a for a in self.check_list if a.flag_ko]
@@ -185,7 +203,9 @@ class Table:
         if (df.shape[0] > 0) and (self.index_column is not None) and (not self.index_problem):
             df0 = df.drop(drop_columns_list, axis=1)
             df1 = df[[self.index_column] + drop_columns_list]
-            df0 = df0.groupby(self.index_column).transform(lambda x: x.fillna(x.min()))
+            df0.groupby(self.index_column, dropna=False).fillna(method="ffill", inplace=True)
+            df0.groupby(self.index_column, dropna=False).fillna(method="bfill", inplace=True)
+            df0 = df0.drop_duplicates()
             df1 = df1.groupby(self.index_column, dropna=False).agg({TAG_CHECK_DESCRIPTION: set,
                                                                     TAG_WARNING_DESCRIPTION: set,
                                                                     "flag_warning": min}).reset_index()
@@ -193,7 +213,7 @@ class Table:
                 lambda x: " - ".join([a for a in x if a is not None]))
             df1[TAG_WARNING_DESCRIPTION] = df1[TAG_WARNING_DESCRIPTION].apply(
                 lambda x: " - ".join([a for a in x if a is not None]))
-            df = df0.join(df1, how="left", on=self.index_column)
+            df = df0.merge(df1, how="left", on=self.index_column)
         df["flag_only_warning"] = df[TAG_CHECK_DESCRIPTION].str.len() == 0
         self.ko_rows = df
         return
@@ -240,7 +260,7 @@ class Table:
         {filter_sql}
         """
         result = self.source.run_query(query)["n_rows"].values[0]
-        return result
+        self.n_rows = result
 
     # Check methods
 
@@ -264,7 +284,6 @@ class Table:
                                     output_columns=output_columns)
             n_ko = check.check(get_rows_flag=get_rows_flag)
         else:
-            # TODO Log unable to check index insert index before
             n_ko = None
 
         return n_ko
@@ -289,7 +308,6 @@ class Table:
                                     output_columns=output_columns)
             n_ko = check.check(get_rows_flag=get_rows_flag)
         else:
-            # TODO Log unable to check index insert index before
             n_ko = None
 
         return n_ko
@@ -307,7 +325,6 @@ class Table:
 
         if columns is None:
             if self.not_empthy_columns is None:
-                # TODO Log unable to check empthy columns set them before
                 result = None
             else:
                 result = {}

@@ -3,7 +3,7 @@ import logging
 
 import pandas as pd
 
-from data_quality.src.data_quality_holder import DataQualitySession
+from data_quality.data_quality_holder import DataQualitySession
 from data_quality.src.utils import FISCALCODE_REGEX
 
 

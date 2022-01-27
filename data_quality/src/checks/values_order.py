@@ -56,7 +56,7 @@ class ValuesOrder(Check):
                         {sql_cast_values}
                     from {self.table.db_name}
                     {ignore_filters}
-                    )
+                    ) as cast_table
                 group by check
                 """
         df = self.table.source.run_query(query)
@@ -90,7 +90,7 @@ class ValuesOrder(Check):
                 {sql_cast_values}
             from {self.table.db_name}
             {ignore_filters}
-            )
+            ) as cast_table
         WHERE 
         {negative_filter}
         {sql_limit}
