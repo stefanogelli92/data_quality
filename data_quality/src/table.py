@@ -1,4 +1,4 @@
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Dict
 from valdec.decorators import validate
 from datetime import date, datetime
 
@@ -8,7 +8,7 @@ from data_quality.src.plot import plot_table_results
 from data_quality.src.utils import _clean_sql_filter, _aggregate_sql_filter, _output_column_to_sql, _query_limit
 from data_quality.src.check import TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION
 from data_quality.src.checks.index_null import IndexNull
-from data_quality.src.checks.index_duplicate import IndexDuplicate
+from data_quality.src.checks.values_duplicate import ValuesDuplicate
 from data_quality.src.checks.not_empthy_column import NotEmpthyColumn
 from data_quality.src.checks.datetime_format import DatetimeFormat
 from data_quality.src.checks.column_between_values import ColumnBetweenValues
@@ -289,17 +289,17 @@ class Table:
         return n_ko
 
     @validate
-    def check_duplicates_index(self,
-                               ignore_filter: Union[str, None] = None,
-                               columns_not_null: Union[str, List[str], None] = None,
-                               get_rows_flag: bool = False,
-                               output_columns: Union[List[str], str, None] = None,
-                               flag_warning: bool = False,
-                               check_description: Union[List[str], str, None] = None,
-                               n_max_rows_output: Union[int, None] = None) -> Optional[int]:
+    def check_duplicate_index(self,
+                              ignore_filter: Union[str, None] = None,
+                              columns_not_null: Union[str, List[str], None] = None,
+                              get_rows_flag: bool = False,
+                              output_columns: Union[List[str], str, None] = None,
+                              flag_warning: bool = False,
+                              check_description: Union[List[str], str, None] = None,
+                              n_max_rows_output: Union[int, None] = None) -> Optional[int]:
 
         if self.index_column is not None:
-            check = IndexDuplicate(self)
+            check = ValuesDuplicate(self, self.index_column)
             check.initialize_params(check_description=check_description,
                                     flag_warning=flag_warning,
                                     n_max_rows_output=n_max_rows_output,
@@ -362,6 +362,30 @@ class Table:
         return result
 
     @validate
+    def check_duplicate_values(self,
+                               columns: Union[str, list],
+                               ignore_filter: Union[str, None] = None,
+                               columns_not_null: Union[str, List[str], None] = None,
+                               get_rows_flag: bool = False,
+                               output_columns: Union[List[str], str, None] = None,
+                               flag_warning: bool = False,
+                               check_description: Union[List[str], str, None] = None,
+                               n_max_rows_output: Union[int, None] = None) -> Dict:
+        if isinstance(columns, str):
+            columns = [columns]
+        result = {}
+        for col in columns:
+            check = ValuesDuplicate(self, col)
+            check.initialize_params(check_description=check_description,
+                                    flag_warning=flag_warning,
+                                    n_max_rows_output=n_max_rows_output,
+                                    ignore_filter=ignore_filter,
+                                    columns_not_null=columns_not_null,
+                                    output_columns=output_columns)
+            result[col] = check.check(get_rows_flag=get_rows_flag)
+        return result
+
+    @validate
     def check_datetime_format(self,
                               columns: Union[str, list, None] = None,
                               datetime_formats: Union[str, list, None] = None,
@@ -394,7 +418,7 @@ class Table:
     def run_basic_check(self,
                         **kwargs):
         self.check_index_not_null(**kwargs)
-        self.check_duplicates_index(**kwargs)
+        self.check_duplicate_index(**kwargs)
         self.check_not_empthy_column(**kwargs)
         self.check_datetime_format(**kwargs)
 

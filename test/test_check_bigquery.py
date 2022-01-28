@@ -95,7 +95,7 @@ class TestCheckSQL(unittest.TestCase):
                                            index_column="index"
                                            )
         result_df = get_dataframe_for_test(db_name)
-        test_table.check_duplicates_index(get_rows_flag=True)
+        test_table.check_duplicate_index(get_rows_flag=True)
         check_results(result_df, test_table)
 
     def test_not_empthy_column(self):

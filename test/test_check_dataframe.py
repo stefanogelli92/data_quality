@@ -35,7 +35,7 @@ class TestCheckDataframe(unittest.TestCase):
         dq_session = DataQualitySession()
         test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
                                                             index_column="index")
-        test_table.check_duplicates_index()
+        test_table.check_duplicate_index()
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
                            check_names=False, check_dtype=False

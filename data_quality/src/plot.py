@@ -191,7 +191,7 @@ def plot_table_results(table,
         max_n_problems = min(table.total_number_ko, table.n_rows)
         min_n_problems = table.max_number_ko
         n_problems = min_n_problems
-        text = f"# Problems : {_human_format(table.total_number_ko)}"
+        text = f"Total number of Problems : {_human_format(table.total_number_ko)}"
         if (max_n_problems - min_n_problems) / table.n_rows > 0.01:
             prefix = ">"
         else:
@@ -204,20 +204,20 @@ def plot_table_results(table,
               text_align="left",
               text_color="black"))
 
-    if table.any_warning(flag_only_fail=filter_only_ko) and consider_warnings:
+    if show_warning:
         if not table.over_n_max_rows_output(consider_warnings=True):
             n_warning = table.number_unique_rows_warning
             text = f"# Rows with a warning: {_human_format(n_warning)}"
-            prefix = ""
+            #prefix = ""
         else:
             max_n_warnings = min(table.total_number_warnings, table.n_rows)
             min_n_warnings = table.max_number_warnings
             n_warning = min_n_warnings
-            text = f"# Warnings : {_human_format(table.n_warning_checks)}"
-            if (max_n_warnings - min_n_warnings) / table.n_rows > 0.01:
-                prefix = ">"
-            else:
-                prefix = "≈"
+            text = f"Total number of Warnings : {_human_format(n_warning)}"
+            # if (max_n_warnings - min_n_warnings) / table.n_rows > 0.01:
+            #     prefix = ">"
+            # else:
+            #     prefix = "≈"
         p.add_layout(
             Label(x=0.5, y=0.25, text=text,
                   text_font_style="bold",
@@ -246,7 +246,7 @@ def plot_table_results(table,
     for check in check_list:
         if (not filter_only_ko) or (check.n_ko > 0):
             perc_ko = check.n_ko / table.n_rows
-            warning_icon_size = 40
+            warning_icon_size = 40 if show_warning else 0
             width_labels = WIDTH - warning_icon_size
             check_label = Div(text=check.check_description, width=int(width_labels * 2 / 3), style={'font-size': '20pt'})
             n_check_label = Div(text=_human_format(check.n_ko), width=int(width_labels / 6), style={'font-size': '30pt'})
