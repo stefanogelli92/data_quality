@@ -12,13 +12,15 @@ def get_dataframe_for_test(sheet_name):
     df = pd.read_excel(r"test_df.xlsx", sheet_name=sheet_name)
     return df
 
-def check_results(df, table):
+def check_results(df, table, same_columns=True):
     df1 = df[df["check_description"].notnull()]
     df2 = table.check_list[0].ko_rows
     df1.sort_values(list(df1.columns), inplace=True)
     df2.sort_values(list(df1.columns), inplace=True)
     df1.reset_index(drop=True, inplace=True)
     df2.reset_index(drop=True, inplace=True)
+    if not same_columns:
+        df2 = df2[df1.columns]
     a = pd.isna(df1)
     b = pd.isna(df2)
     df1 = df1.astype(str)
@@ -29,6 +31,7 @@ def check_results(df, table):
                        df2,
                        check_names=False, check_dtype=False
                        )
+    return
 
 
 class TestCheckDataframe(unittest.TestCase):
@@ -251,7 +254,7 @@ class TestCheckDataframe(unittest.TestCase):
         test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
         dimension_table = dq_session.create_table_from_dataframe(dimension_table, output_name="dimension_table", index_column="id")
         test_table.check_dates_order_dimension_table("user_id", dimension_table, "selling_date", "registration_date", ">=")
-        check_results(df, test_table)
+        check_results(df, test_table, same_columns=False)
 
     def test_create_result_df(self):
         df = get_dataframe_for_test("fact_table")

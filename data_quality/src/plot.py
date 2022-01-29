@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from bokeh.plotting import figure, save
 from bokeh.models import (Label, Button, CustomJS, ColumnDataSource, Div)
-from bokeh.models.widgets import DataTable, TableColumn, Panel, Tabs
+from bokeh.models.widgets import DataTable, TableColumn, Panel, Tabs, HTMLTemplateFormatter
 from bokeh.layouts import column, row, Spacer
 from bokeh.io import output_file, show
 from valdec.decorators import validate
@@ -265,7 +265,9 @@ def plot_table_results(table,
                             df_plot[col] = df_plot[col].dt.strftime("%Y-%m-%d")
                         except:
                             pass
-                columns = [TableColumn(field=c, title=c) for c in df_plot.columns]
+                template = """<div style="background: yellow"> <%= value %></div>"""
+                formatter = HTMLTemplateFormatter(template=template)
+                columns = [TableColumn(field=c, title=c, formatter=formatter) if c == table.index_column else TableColumn(field=c, title=c) for c in df_plot.columns]
                 row_height = 30
                 table_height = min(row_height * (df_plot.shape[0] + 1), 600)
                 data_table = DataTable(columns=columns, source=ColumnDataSource(df_plot), width=WIDTH,

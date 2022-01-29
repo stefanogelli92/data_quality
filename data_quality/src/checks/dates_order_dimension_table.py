@@ -124,6 +124,7 @@ class DatesOrderDimensionTable(Check):
         join_keys = " AND ".join(join_keys)
 
         output_columns = _output_column_to_sql(self.table.output_columns, table_tag="left_table")
+        output_columns += f", right_table.{self.right_column}"
 
         negative_filter = self._create_negative_filter()
 
@@ -139,6 +140,12 @@ class DatesOrderDimensionTable(Check):
                 {sql_limit}
                 """
         df = self.table.source.run_query(query)
+        if self.right_column in df.columns:
+            right_column_output_name = f"{self.right_column}_2"
+        else:
+            right_column_output_name = self.right_column
+        df.rename(columns={f"right_table.{self.right_column}": right_column_output_name}, inplace=True)
+        # self.output_columns.append(right_column_output_name)
         return df
 
     def _get_rows_ko_sql_dimension_table_dataframe(self):
@@ -179,7 +186,12 @@ class DatesOrderDimensionTable(Check):
         df = df[df["right_table_" + self.right_column].notnull() & (df["right_table_" + self.right_column].astype(str) != "")]
         pandas_operator = self.operator if self.operator != "=" else "=="
         df = df.query(f"{self.left_column} {pandas_operator} {'right_table_' + self.right_column}")
-        df.drop([tag_key, 'right_table_' + self.right_column], axis=1, inplace=True)
+        df.drop([tag_key], axis=1, inplace=True)
+        if self.right_column in df.columns:
+            right_column_output_name = f"{self.right_column}_2"
+        else:
+            right_column_output_name = self.right_column
+        df.rename(columns={f"right_table_{self.right_column}": right_column_output_name}, inplace=True)
         return df
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:

@@ -51,13 +51,15 @@ def create_csv():
 #create_csv()
 
 
-def check_results(df, table):
+def check_results(df, table, same_columns=True):
     df1 = df[df["check_description"].notnull()]
     df2 = table.check_list[0].ko_rows
     df1.sort_values(list(df1.columns), inplace=True)
     df2.sort_values(list(df1.columns), inplace=True)
     df1.reset_index(drop=True, inplace=True)
     df2.reset_index(drop=True, inplace=True)
+    if not same_columns:
+        df2 = df2[df1.columns]
     a = pd.isna(df1)
     b = pd.isna(df2)
     df1 = df1.astype(str)
@@ -296,7 +298,7 @@ class TestCheckSQL(unittest.TestCase):
         test_table.check_dates_order_dimension_table("user_id", dimension_table, "selling_date", "registration_date", ">=",
                                                      get_rows_flag=True)
         result_df = get_dataframe_for_test(db_name)
-        check_results(result_df, test_table)
+        check_results(result_df, test_table, same_columns=False)
 
 
 if __name__ == '__main__':
