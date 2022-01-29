@@ -19,6 +19,7 @@ class MatchRegex(Check):
         self.column_name = column_name
         self.regex = regex
         self.case_sensitive = case_sensitive
+        self.highlight_columns = [column_name]
 
         self.check_description = f"Wrong format in column {column_name}"
 

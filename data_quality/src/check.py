@@ -19,6 +19,7 @@ class Check(ABC):
         self.ignore_filters = []
         self.columns_not_null = None
         self.output_columns = None
+        self.highlight_columns = []
 
         self.flag_ko = None
         self.n_ko = None

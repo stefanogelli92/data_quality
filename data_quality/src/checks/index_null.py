@@ -11,6 +11,7 @@ class IndexNull(Check):
         self.table = table
         self.check_description = "Index null"
         self.index_column = table.index_column
+        self.highlight_columns = [table.index_column]
 
     def _get_number_ko_sql(self) -> int:
         negative_filter = _create_filter_columns_null(self.index_column)

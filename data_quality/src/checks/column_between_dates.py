@@ -23,6 +23,7 @@ class ColumnBetweenDates(Check):
         self.max_date = pd.to_datetime(max_date)
         self.min_included = min_included
         self.max_included = max_included
+        self.highlight_columns = [column_name]
 
         self.check_description = self._create_check_description()
 

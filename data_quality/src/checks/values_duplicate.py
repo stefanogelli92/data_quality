@@ -13,6 +13,7 @@ class ValuesDuplicate(Check):
         self.table = table
         self.check_description = "Duplicated index"
         self.column = column_name
+        self.highlight_columns = [column_name]
 
     def _get_number_ko_sql(self) -> int:
         ignore_filters = [_create_filter_columns_not_null(self.column),

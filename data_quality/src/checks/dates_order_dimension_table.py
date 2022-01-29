@@ -38,6 +38,8 @@ class DatesOrderDimensionTable(Check):
 
         self.dimension_table = dimension_table
 
+        self.highlight_columns = [left_column]
+
         self.check_description = f"Dates {left_column}, {right_column} are not in the correct order"
 
     @staticmethod
@@ -124,7 +126,7 @@ class DatesOrderDimensionTable(Check):
         join_keys = " AND ".join(join_keys)
 
         output_columns = _output_column_to_sql(self.table.output_columns, table_tag="left_table")
-        output_columns += f", right_table.{self.right_column}"
+        output_columns += f", right_table.{self.right_column} as right_table_right_column"
 
         negative_filter = self._create_negative_filter()
 
@@ -144,8 +146,8 @@ class DatesOrderDimensionTable(Check):
             right_column_output_name = f"{self.right_column}_2"
         else:
             right_column_output_name = self.right_column
-        df.rename(columns={f"right_table.{self.right_column}": right_column_output_name}, inplace=True)
-        # self.output_columns.append(right_column_output_name)
+        df.rename(columns={f"right_table_right_column": right_column_output_name}, inplace=True)
+        self.highlight_columns.append(right_column_output_name)
         return df
 
     def _get_rows_ko_sql_dimension_table_dataframe(self):
@@ -192,6 +194,7 @@ class DatesOrderDimensionTable(Check):
         else:
             right_column_output_name = self.right_column
         df.rename(columns={f"right_table_{self.right_column}": right_column_output_name}, inplace=True)
+        self.highlight_columns.append(right_column_output_name)
         return df
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:

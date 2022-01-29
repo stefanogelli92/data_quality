@@ -22,6 +22,7 @@ class ColumnBetweenValues(Check):
         self.max_value = max_value
         self.min_included = min_included
         self.max_included = max_included
+        self.highlight_columns = [column_name]
 
         self.check_description = self._create_check_description()
 

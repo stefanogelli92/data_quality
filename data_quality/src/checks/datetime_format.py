@@ -12,6 +12,7 @@ class DatetimeFormat(Check):
         self.table = table
         self.check_description = f"Wrong Format in column {column_name}"
         self.column_name = column_name
+        self.highlight_columns = [column_name]
 
     def _get_number_ko_sql(self) -> int:
         negative_filter = self.table.source.cast_datetime_sql(self.column_name, self.table.datetime_columns[self.column_name]) + " is null"

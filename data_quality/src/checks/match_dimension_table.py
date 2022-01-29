@@ -30,6 +30,8 @@ class MatchDImensionTable(Check):
 
         self.dimension_table = dimension_table
 
+        self.highlight_columns = foreign_keys
+
         self.check_description = f"Unable to find a match with table {dimension_table.output_name}"
 
     def _get_number_ko_sql_dimension_table_sql(self):

@@ -258,6 +258,7 @@ def plot_table_results(table,
 
             if (check.ko_rows is not None) and (check.ko_rows.shape[0] > 0):
                 df_plot = check.ko_rows.drop([TAG_CHECK_DESCRIPTION], axis=1)
+                df_plot.replace("", pd.NA, inplace=True)
                 for col in table.datetime_columns:
                     if np.issubdtype(df_plot[col].dtype, np.datetime64):
                         try:
@@ -267,7 +268,7 @@ def plot_table_results(table,
                             pass
                 template = """<div style="background: yellow"> <%= value %></div>"""
                 formatter = HTMLTemplateFormatter(template=template)
-                columns = [TableColumn(field=c, title=c, formatter=formatter) if c == table.index_column else TableColumn(field=c, title=c) for c in df_plot.columns]
+                columns = [TableColumn(field=c, title=c, formatter=formatter) if c in check.highlight_columns else TableColumn(field=c, title=c) for c in df_plot.columns]
                 row_height = 30
                 table_height = min(row_height * (df_plot.shape[0] + 1), 600)
                 data_table = DataTable(columns=columns, source=ColumnDataSource(df_plot), width=WIDTH,

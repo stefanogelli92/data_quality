@@ -20,6 +20,7 @@ class ValuesOrder(Check):
         self.table = table
         self.ascending_columns = ascending_columns
         self.strictly_ascending = strictly_ascending
+        self.highlight_columns = ascending_columns
 
         self.check_description = "Values {} are not in the correct order".format(", ".join(ascending_columns))
 

@@ -16,6 +16,7 @@ class Custom(Check):
         self.table = table
         self.check_description = check_description
         self.negative_filter = negative_filter
+        self.highlight_columns = []
 
     def _get_number_ko_sql(self) -> int:
         return self.standard_get_number_ko_sql(self.negative_filter)
