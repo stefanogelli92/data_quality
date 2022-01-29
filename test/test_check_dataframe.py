@@ -12,6 +12,24 @@ def get_dataframe_for_test(sheet_name):
     df = pd.read_excel(r"test_df.xlsx", sheet_name=sheet_name)
     return df
 
+def check_results(df, table):
+    df1 = df[df["check_description"].notnull()]
+    df2 = table.check_list[0].ko_rows
+    df1.sort_values(list(df1.columns), inplace=True)
+    df2.sort_values(list(df1.columns), inplace=True)
+    df1.reset_index(drop=True, inplace=True)
+    df2.reset_index(drop=True, inplace=True)
+    a = pd.isna(df1)
+    b = pd.isna(df2)
+    df1 = df1.astype(str)
+    df1[a] = None
+    df2 = df2.astype(str)
+    df2[b] = None
+    assert_frame_equal(df1,
+                       df2,
+                       check_names=False, check_dtype=False
+                       )
+
 
 class TestCheckDataframe(unittest.TestCase):
 
@@ -206,7 +224,7 @@ class TestCheckDataframe(unittest.TestCase):
         dq_session = DataQualitySession()
         test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
         dimension_table = dq_session.create_table_from_dataframe(dimension_table, output_name="dimension_table", index_column="id")
-        test_table.check_match_match_dimension_table("dimension_id", dimension_table)
+        test_table.check_match_dimension_table("dimension_id", dimension_table)
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
                            check_names=False, check_dtype=False
@@ -219,11 +237,21 @@ class TestCheckDataframe(unittest.TestCase):
         dq_session = DataQualitySession()
         test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
         dimension_table = dq_session.create_table_from_dataframe(dimension_table, output_name="dimension_table", index_column="id")
-        test_table.check_match_match_dimension_table(["dimension_id", "dimension_code"], dimension_table, primary_keys=["id", "code"])
+        test_table.check_match_dimension_table(["dimension_id", "dimension_code"], dimension_table, primary_keys=["id", "code"])
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
                            check_names=False, check_dtype=False
                            )
+
+    def test_dates_order_dimension_table(self):
+        df = get_dataframe_for_test("products")
+        dimension_table = get_dataframe_for_test("user_list")
+
+        dq_session = DataQualitySession()
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        dimension_table = dq_session.create_table_from_dataframe(dimension_table, output_name="dimension_table", index_column="id")
+        test_table.check_dates_order_dimension_table("user_id", dimension_table, "selling_date", "registration_date", ">=")
+        check_results(df, test_table)
 
     def test_create_result_df(self):
         df = get_dataframe_for_test("fact_table")

@@ -25,6 +25,7 @@ def _create_gauge_plot(percertage: Union[float, List[float]],
     if isinstance(percertage, float):
         percertage = [percertage]
     percertage = np.cumsum(percertage)
+    percertage = [min(a, 1) for a in percertage]
     if colors is None:
         colors = ["orange", "grey", "red", "blue"]
 

@@ -54,7 +54,7 @@ class ValuesDuplicate(Check):
                 from {self.table.db_name}
                 {ignore_filters}
             ) as cast_table 
-            WHERE a.n_distinct_index > 1
+            WHERE cast_table.n_distinct_index > 1
             {sql_limit}
         """
         df = self.table.source.run_query(query)

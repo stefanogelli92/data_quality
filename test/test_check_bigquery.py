@@ -22,25 +22,28 @@ def get_dataframe_for_test(sheet_name):
 
 
 def create_csv():
-    sheet_list = [
-        "index_null",
-        "duplicated_index",
-        "not_empthy_column",
-        "datetime_format1",
-        "datetime_format2",
-        "columns_between_values",
-        "columns_between_dates",
-        "dates_order",
-        "dates_strictly_order",
-        "values_order",
-        "values_strictly_order",
-        "values_in_list_cs",
-        "values_in_list",
-        "match_regex",
-        "custom_condition",
-        "dimension_table",
-        "fact_table"
-    ]
+    # sheet_list = [
+    #     "index_null",
+    #     "duplicated_index",
+    #     "not_empthy_column",
+    #     "datetime_format1",
+    #     "datetime_format2",
+    #     "columns_between_values",
+    #     "columns_between_dates",
+    #     "dates_order",
+    #     "dates_strictly_order",
+    #     "values_order",
+    #     "values_strictly_order",
+    #     "values_in_list_cs",
+    #     "values_in_list",
+    #     "match_regex",
+    #     "custom_condition",
+    #     "dimension_table",
+    #     "fact_table",
+    #     "products",
+    #     "user_list"
+    # ]
+    sheet_list = ["fact_table"]
     for sheet in sheet_list:
         df = pd.read_excel(r"test_df.xlsx", sheet_name=sheet)
         df.to_csv("test_data/" + sheet + ".csv", index=False)
@@ -170,7 +173,8 @@ class TestCheckSQL(unittest.TestCase):
         bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
         test_table = bigquery.create_table(DBBIGQUERY + db_name,
                                            datetime_columns=["A", "B", "C", "D"],
-                                           datetime_formats=["yyyy-MM-dd HH24:MI:SS", "yyyy-MM-dd", None, None])
+                                           datetime_formats=["yyyy-MM-dd HH24:MI:SS", "yyyy-MM-dd", None, None]
+                                           )
         result_df = get_dataframe_for_test(db_name)
         test_table.check_dates_order(["A", "B", "C", "D"], get_rows_flag=True)
         check_results(result_df, test_table)
@@ -247,7 +251,7 @@ class TestCheckSQL(unittest.TestCase):
         test_table = bigquery.create_table(DBBIGQUERY + db_name)
         dimension_table = bigquery.create_table(DBBIGQUERY + "dimension_table", output_name="dimension_table", index_column="id")
         result_df = get_dataframe_for_test(db_name)
-        test_table.check_match_match_dimension_table("dimension_id", dimension_table, get_rows_flag=True)
+        test_table.check_match_dimension_table("dimension_id", dimension_table, get_rows_flag=True)
         check_results(result_df, test_table)
 
     def test_match_dimension_table_sql_sql2(self):
@@ -257,7 +261,7 @@ class TestCheckSQL(unittest.TestCase):
         test_table = bigquery.create_table(DBBIGQUERY + db_name)
         dimension_table = bigquery.create_table(DBBIGQUERY + "dimension_table", output_name="dimension_table", index_column="id")
         result_df = get_dataframe_for_test(db_name)
-        test_table.check_match_match_dimension_table(["dimension_id", "dimension_code"], dimension_table, primary_keys=["id", "code"], get_rows_flag=True)
+        test_table.check_match_dimension_table(["dimension_id", "dimension_code"], dimension_table, primary_keys=["id", "code"], get_rows_flag=True)
         check_results(result_df, test_table)
 
     def test_match_dimension_table_sql_df(self):
@@ -268,7 +272,7 @@ class TestCheckSQL(unittest.TestCase):
         dimension_table = get_dataframe_for_test("dimension_table")
         dimension_table = dq_session.create_table_from_dataframe(dimension_table, output_name="dimension_table", index_column="id")
         result_df = get_dataframe_for_test(db_name)
-        test_table.check_match_match_dimension_table("dimension_id", dimension_table, get_rows_flag=True)
+        test_table.check_match_dimension_table("dimension_id", dimension_table, get_rows_flag=True)
         check_results(result_df, test_table)
 
     def test_match_dimension_table_df_sql(self):
@@ -279,7 +283,19 @@ class TestCheckSQL(unittest.TestCase):
         test_table = get_dataframe_for_test("fact_table")
         test_table = dq_session.create_table_from_dataframe(test_table, output_name="fact_table")
         result_df = get_dataframe_for_test("fact_table")
-        test_table.check_match_match_dimension_table("dimension_id", dimension_table, get_rows_flag=True)
+        test_table.check_match_dimension_table("dimension_id", dimension_table, get_rows_flag=True)
+        check_results(result_df, test_table)
+
+    def test_dates_order_dimension_table(self):
+        db_name = "products"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name)
+        dimension_table = bigquery.create_table(DBBIGQUERY + "user_list", output_name="Users",
+                                                index_column="id")
+        test_table.check_dates_order_dimension_table("user_id", dimension_table, "selling_date", "registration_date", ">=",
+                                                     get_rows_flag=True)
+        result_df = get_dataframe_for_test(db_name)
         check_results(result_df, test_table)
 
 

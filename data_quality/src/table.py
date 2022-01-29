@@ -4,6 +4,7 @@ from datetime import date, datetime
 
 import pandas as pd
 
+from data_quality.src.checks.dates_order_dimension_table import DatesOrderDimensionTable
 from data_quality.src.plot import plot_table_results
 from data_quality.src.utils import _clean_sql_filter, _aggregate_sql_filter, _output_column_to_sql, _query_limit
 from data_quality.src.check import TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION
@@ -471,7 +472,6 @@ class Table:
     @validate
     def check_columns_between_dates(self,
                                     columns: Union[List[str], str, None],
-                                    datetime_formats: Union[List[str], str, None] = None,
                                     min_date: Union[str, date, datetime] = None,
                                     max_date: Union[str, date, datetime] = None,
                                     min_included: bool = True,
@@ -483,7 +483,7 @@ class Table:
                                     flag_warning: bool = False,
                                     check_description: Union[str, None] = None,
                                     n_max_rows_output: Union[int, None] = None) -> Union[int, dict, None]:
-        self.set_datetime_columns(columns, datetime_formats=datetime_formats, replace_formats=False)
+        self.set_datetime_columns(columns, replace_formats=False)
         if isinstance(columns, str):
             check = ColumnBetweenDates(self,
                                        columns,
@@ -550,6 +550,7 @@ class Table:
                           flag_warning: bool = False,
                           check_description: Union[str, None] = None,
                           n_max_rows_output: Union[int, None] = None) -> int:
+        self.set_datetime_columns(ascending_columns, replace_formats=False)
         check = DatesOrder(
             self,
             ascending_columns=ascending_columns,
@@ -696,17 +697,17 @@ class Table:
         return check.check(get_rows_flag=get_rows_flag)
 
     @validate
-    def check_match_match_dimension_table(self,
-                                          foreign_keys: Union[str, list],
-                                          dimension_table,
-                                          primary_keys: Union[str, list] = None,
-                                          ignore_filter: Union[str, None] = None,
-                                          columns_not_null: Union[str, List[str], None] = None,
-                                          get_rows_flag: bool = False,
-                                          output_columns: Union[List[str], str, None] = None,
-                                          check_description: Union[str, None] = None,
-                                          flag_warning: bool = False,
-                                          n_max_rows_output: Union[int, None] = None) -> int:
+    def check_match_dimension_table(self,
+                                    foreign_keys: Union[str, list],
+                                    dimension_table,
+                                    primary_keys: Union[str, list] = None,
+                                    ignore_filter: Union[str, None] = None,
+                                    columns_not_null: Union[str, List[str], None] = None,
+                                    get_rows_flag: bool = False,
+                                    output_columns: Union[List[str], str, None] = None,
+                                    check_description: Union[str, None] = None,
+                                    flag_warning: bool = False,
+                                    n_max_rows_output: Union[int, None] = None) -> int:
         check = MatchDImensionTable(
             self,
             foreign_keys=foreign_keys,
@@ -720,6 +721,48 @@ class Table:
                                 columns_not_null=columns_not_null,
                                 output_columns=output_columns)
         return check.check(get_rows_flag=get_rows_flag)
+
+    @validate
+    def check_dates_order_dimension_table(self,
+                                          foreign_keys: Union[str, list],
+                                          dimension_table,
+                                          left_columns: Union[str, list],
+                                          right_columns: Union[str, list],
+                                          operator: str = "<=",
+                                          primary_keys: Union[str, list] = None,
+                                          ignore_filter: Union[str, None] = None,
+                                          columns_not_null: Union[str, List[str], None] = None,
+                                          get_rows_flag: bool = False,
+                                          output_columns: Union[List[str], str, None] = None,
+                                          check_description: Union[str, None] = None,
+                                          flag_warning: bool = False,
+                                          n_max_rows_output: Union[int, None] = None) -> int:
+        self.set_datetime_columns(left_columns, replace_formats=False)
+        dimension_table.set_datetime_columns(right_columns, replace_formats=False)
+        if isinstance(left_columns, str):
+            left_columns = [left_columns]
+        if isinstance(right_columns, str):
+            right_columns = [right_columns]
+        result = 0
+        for lc in left_columns:
+            for rc in right_columns:
+                check = DatesOrderDimensionTable(
+                    self,
+                    foreign_keys=foreign_keys,
+                    dimension_table=dimension_table,
+                    left_column=lc,
+                    right_column=rc,
+                    operator=operator,
+                    primary_keys=primary_keys
+                )
+                check.initialize_params(check_description=check_description,
+                                        flag_warning=flag_warning,
+                                        n_max_rows_output=n_max_rows_output,
+                                        ignore_filter=ignore_filter,
+                                        columns_not_null=columns_not_null,
+                                        output_columns=output_columns)
+                result += check.check(get_rows_flag=get_rows_flag)
+        return result
 
     def create_html_output(self,
                            title: str = None,
