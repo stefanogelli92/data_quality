@@ -124,7 +124,8 @@ class Sources(object):
                      datetime_columns: Union[List[str], str] = None,
                      datetime_formats: Union[List[str], str] = None,
                      table_filter: str = None,
-                     n_max_rows_output: Union[int, None] = None
+                     n_max_rows_output: Union[int, None] = None,
+                     output_columns: Union[List[str], str] = None
                      ) -> Table:
         if n_max_rows_output is None:
             n_max_rows_output = self.n_max_rows_output
@@ -136,6 +137,7 @@ class Sources(object):
                       not_empthy_columns=not_empthy_columns,
                       datetime_columns=datetime_columns,
                       datetime_formats=datetime_formats,
+                      output_columns=output_columns,
                       n_max_rows_output=n_max_rows_output)
         self.session.tables.append(table)
         return table

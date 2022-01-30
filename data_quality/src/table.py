@@ -5,6 +5,7 @@ from datetime import date, datetime
 import pandas as pd
 
 from data_quality.src.checks.dates_order_dimension_table import DatesOrderDimensionTable
+from data_quality.src.checks.period_intersection import PeriodIntersection
 from data_quality.src.checks.values_order_dimension_table import ValuesOrderDimensionTable
 from data_quality.src.plot import plot_table_results
 from data_quality.src.utils import _clean_sql_filter, _aggregate_sql_filter, _output_column_to_sql, _query_limit
@@ -767,19 +768,19 @@ class Table:
 
     @validate
     def check_values_order_dimension_table(self,
-                                          foreign_keys: Union[str, list],
-                                          dimension_table,
-                                          left_columns: Union[str, list],
-                                          right_columns: Union[str, list],
-                                          operator: str = "<=",
-                                          primary_keys: Union[str, list] = None,
-                                          ignore_filter: Union[str, None] = None,
-                                          columns_not_null: Union[str, List[str], None] = None,
-                                          get_rows_flag: bool = False,
-                                          output_columns: Union[List[str], str, None] = None,
-                                          check_description: Union[str, None] = None,
-                                          flag_warning: bool = False,
-                                          n_max_rows_output: Union[int, None] = None) -> int:
+                                           foreign_keys: Union[str, list],
+                                           dimension_table,
+                                           left_columns: Union[str, list],
+                                           right_columns: Union[str, list],
+                                           operator: str = "<=",
+                                           primary_keys: Union[str, list] = None,
+                                           ignore_filter: Union[str, None] = None,
+                                           columns_not_null: Union[str, List[str], None] = None,
+                                           get_rows_flag: bool = False,
+                                           output_columns: Union[List[str], str, None] = None,
+                                           check_description: Union[str, None] = None,
+                                           flag_warning: bool = False,
+                                           n_max_rows_output: Union[int, None] = None) -> int:
         if isinstance(left_columns, str):
             left_columns = [left_columns]
         if isinstance(right_columns, str):
@@ -805,6 +806,34 @@ class Table:
                 result += check.check(get_rows_flag=get_rows_flag)
         return result
 
+    def check_period_intersection_rows(self,
+                                       start_date: str,
+                                       end_date: str,
+                                       id_columns: Union[str, List[str], None] = None,
+                                       extremes_exclude: bool = False,
+                                       ignore_filter: Union[str, None] = None,
+                                       columns_not_null: Union[str, List[str], None] = None,
+                                       get_rows_flag: bool = False,
+                                       output_columns: Union[List[str], str, None] = None,
+                                       flag_warning: bool = False,
+                                       check_description: Union[str, None] = None,
+                                       n_max_rows_output: Union[int, None] = None) -> int:
+        self.set_datetime_columns([start_date, end_date], replace_formats=False)
+        check = PeriodIntersection(
+            self,
+            id_columns=id_columns,
+            start_date=start_date,
+            end_date=end_date,
+            extremes_exclude=extremes_exclude
+        )
+        check.initialize_params(check_description=check_description,
+                                flag_warning=flag_warning,
+                                n_max_rows_output=n_max_rows_output,
+                                ignore_filter=ignore_filter,
+                                columns_not_null=columns_not_null,
+                                output_columns=output_columns)
+        return check.check(get_rows_flag=get_rows_flag)
+
     def create_html_output(self,
                            title: str = None,
                            sort_by_n_ko: bool = True,
@@ -814,9 +843,9 @@ class Table:
                            show_flag: bool = False):
 
         return plot_table_results(self,
-                               title=title,
-                               sort_by_n_ko=sort_by_n_ko,
-                               consider_warnings=consider_warnings,
-                               filter_only_ko=filter_only_ko,
-                               save_in_path=save_in_path,
-                               show_flag=show_flag)
+                                  title=title,
+                                  sort_by_n_ko=sort_by_n_ko,
+                                  consider_warnings=consider_warnings,
+                                  filter_only_ko=filter_only_ko,
+                                  save_in_path=save_in_path,
+                                  show_flag=show_flag)

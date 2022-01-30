@@ -266,6 +266,33 @@ class TestCheckDataframe(unittest.TestCase):
         test_table.check_values_order_dimension_table("user_id", dimension_table, "n_products", "max_products", "<=")
         check_results(df, test_table, same_columns=False)
 
+    def test_period_intersection_rows1(self):
+
+        df = get_dataframe_for_test("period_intersection")
+
+        dq_session = DataQualitySession()
+        df = df[df["user_id"] == 2]
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table.check_period_intersection_rows(start_date="subscription_start",
+                                                  end_date="subscription_end")
+        assert_frame_equal(test_table.check_list[0].ko_rows,
+                           df[df["check_description"].notnull()],
+                           check_names=False, check_dtype=False
+                           )
+
+    def test_period_intersection_rows2(self):
+        df = get_dataframe_for_test("period_intersection")
+
+        dq_session = DataQualitySession()
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table.check_period_intersection_rows(id_columns="user_id",
+                                                  start_date="subscription_start",
+                                                  end_date="subscription_end")
+        assert_frame_equal(test_table.check_list[0].ko_rows,
+                           df[df["check_description"].notnull()],
+                           check_names=False, check_dtype=False
+                           )
+
     def test_create_result_df(self):
         df = get_dataframe_for_test("fact_table")
         dq_session = DataQualitySession()

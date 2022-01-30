@@ -58,7 +58,10 @@ class Check(ABC):
         self.ignore_filters = []
         self.add_ignore_filter(ignore_filter)
         self.columns_not_null = columns_not_null
-        self.output_columns = output_columns
+        if output_columns is not None:
+            self.output_columns = output_columns
+        else:
+            self.output_columns = self.table.output_columns
 
     def add_ignore_filter(self, sql_filter):
         if self.ignore_filters is None:

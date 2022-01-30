@@ -12,7 +12,7 @@ from bokeh.io import output_file, show
 from valdec.decorators import validate
 
 from data_quality.src.utils import _human_format, _human_format_perc
-from data_quality.src.check import TAG_CHECK_DESCRIPTION
+from data_quality.src.check import TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION
 
 
 def _create_gauge_plot(percertage: Union[float, List[float]],
@@ -257,7 +257,7 @@ def plot_table_results(table,
             p = row(warning_icon, check_label, n_check_label, perc_label)
 
             if (check.ko_rows is not None) and (check.ko_rows.shape[0] > 0):
-                df_plot = check.ko_rows.drop([TAG_CHECK_DESCRIPTION], axis=1)
+                df_plot = check.ko_rows.drop([TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION, "flag_warning"], axis=1)
                 df_plot.replace("", pd.NA, inplace=True)
                 for col in table.datetime_columns:
                     if np.issubdtype(df_plot[col].dtype, np.datetime64):
