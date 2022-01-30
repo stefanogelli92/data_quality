@@ -41,9 +41,11 @@ def create_csv():
     #     "dimension_table",
     #     "fact_table",
     #     "products",
-    #     "user_list"
+    #     "products2",
+    #     "user_list",
+    #     "period_intersection",
     # ]
-    sheet_list = ["user_list"]
+    sheet_list = ["period_intersection"]
     for sheet in sheet_list:
         df = pd.read_excel(r"test_df.xlsx", sheet_name=sheet)
         df.to_csv("test_data/" + sheet + ".csv", index=False)
@@ -311,6 +313,29 @@ class TestCheckSQL(unittest.TestCase):
                                                      get_rows_flag=True)
         result_df = get_dataframe_for_test(db_name)
         check_results(result_df, test_table, same_columns=False)
+
+    def test_period_intersection_rows1(self):
+        db_name = "period_intersection"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name, table_filter="user_id=2")
+        result_df = get_dataframe_for_test(db_name)
+        test_table.check_period_intersection_rows(start_date="subscription_start",
+                                                  end_date="subscription_end",
+                                                  get_rows_flag=True)
+        check_results(result_df, test_table)
+
+    def test_period_intersection_rows2(self):
+        db_name = "period_intersection"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name)
+        result_df = get_dataframe_for_test(db_name)
+        test_table.check_period_intersection_rows(id_columns="user_id",
+                                                  start_date="subscription_start",
+                                                  end_date="subscription_end",
+                                                  get_rows_flag=True)
+        check_results(result_df, test_table)
 
 
 if __name__ == '__main__':
