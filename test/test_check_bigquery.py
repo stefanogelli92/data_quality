@@ -43,7 +43,7 @@ def create_csv():
     #     "products",
     #     "user_list"
     # ]
-    sheet_list = ["fact_table"]
+    sheet_list = ["user_list"]
     for sheet in sheet_list:
         df = pd.read_excel(r"test_df.xlsx", sheet_name=sheet)
         df.to_csv("test_data/" + sheet + ".csv", index=False)
@@ -166,7 +166,7 @@ class TestCheckSQL(unittest.TestCase):
         test_table = bigquery.create_table(DBBIGQUERY + db_name
                                            )
         result_df = get_dataframe_for_test(db_name)
-        test_table.check_columns_between_dates("A", datetime_formats="yyyy/MM/dd", min_date="2020-01-01", max_date="2022-01-01", get_rows_flag=True)
+        test_table.check_columns_between_dates("A", min_date="2020-01-01", max_date="2022-01-01", get_rows_flag=True)
         check_results(result_df, test_table)
 
     def test_dates_order(self):
@@ -296,6 +296,18 @@ class TestCheckSQL(unittest.TestCase):
         dimension_table = bigquery.create_table(DBBIGQUERY + "user_list", output_name="Users",
                                                 index_column="id")
         test_table.check_dates_order_dimension_table("user_id", dimension_table, "selling_date", "registration_date", ">=",
+                                                     get_rows_flag=True)
+        result_df = get_dataframe_for_test(db_name)
+        check_results(result_df, test_table, same_columns=False)
+
+    def test_values_order_dimension_table(self):
+        db_name = "products2"
+        dq_session = DataQualitySession()
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        test_table = bigquery.create_table(DBBIGQUERY + db_name)
+        dimension_table = bigquery.create_table(DBBIGQUERY + "user_list", output_name="Users",
+                                                index_column="id")
+        test_table.check_values_order_dimension_table("user_id", dimension_table, "n_products", "max_products", "<=",
                                                      get_rows_flag=True)
         result_df = get_dataframe_for_test(db_name)
         check_results(result_df, test_table, same_columns=False)

@@ -5,6 +5,7 @@ from datetime import date, datetime
 import pandas as pd
 
 from data_quality.src.checks.dates_order_dimension_table import DatesOrderDimensionTable
+from data_quality.src.checks.values_order_dimension_table import ValuesOrderDimensionTable
 from data_quality.src.plot import plot_table_results
 from data_quality.src.utils import _clean_sql_filter, _aggregate_sql_filter, _output_column_to_sql, _query_limit
 from data_quality.src.check import TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION
@@ -747,6 +748,46 @@ class Table:
         for lc in left_columns:
             for rc in right_columns:
                 check = DatesOrderDimensionTable(
+                    self,
+                    foreign_keys=foreign_keys,
+                    dimension_table=dimension_table,
+                    left_column=lc,
+                    right_column=rc,
+                    operator=operator,
+                    primary_keys=primary_keys
+                )
+                check.initialize_params(check_description=check_description,
+                                        flag_warning=flag_warning,
+                                        n_max_rows_output=n_max_rows_output,
+                                        ignore_filter=ignore_filter,
+                                        columns_not_null=columns_not_null,
+                                        output_columns=output_columns)
+                result += check.check(get_rows_flag=get_rows_flag)
+        return result
+
+    @validate
+    def check_values_order_dimension_table(self,
+                                          foreign_keys: Union[str, list],
+                                          dimension_table,
+                                          left_columns: Union[str, list],
+                                          right_columns: Union[str, list],
+                                          operator: str = "<=",
+                                          primary_keys: Union[str, list] = None,
+                                          ignore_filter: Union[str, None] = None,
+                                          columns_not_null: Union[str, List[str], None] = None,
+                                          get_rows_flag: bool = False,
+                                          output_columns: Union[List[str], str, None] = None,
+                                          check_description: Union[str, None] = None,
+                                          flag_warning: bool = False,
+                                          n_max_rows_output: Union[int, None] = None) -> int:
+        if isinstance(left_columns, str):
+            left_columns = [left_columns]
+        if isinstance(right_columns, str):
+            right_columns = [right_columns]
+        result = 0
+        for lc in left_columns:
+            for rc in right_columns:
+                check = ValuesOrderDimensionTable(
                     self,
                     foreign_keys=foreign_keys,
                     dimension_table=dimension_table,

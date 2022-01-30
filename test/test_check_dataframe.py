@@ -256,6 +256,16 @@ class TestCheckDataframe(unittest.TestCase):
         test_table.check_dates_order_dimension_table("user_id", dimension_table, "selling_date", "registration_date", ">=")
         check_results(df, test_table, same_columns=False)
 
+    def test_values_order_dimension_table(self):
+        df = get_dataframe_for_test("products2")
+        dimension_table = get_dataframe_for_test("user_list")
+
+        dq_session = DataQualitySession()
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        dimension_table = dq_session.create_table_from_dataframe(dimension_table, output_name="dimension_table", index_column="id")
+        test_table.check_values_order_dimension_table("user_id", dimension_table, "n_products", "max_products", "<=")
+        check_results(df, test_table, same_columns=False)
+
     def test_create_result_df(self):
         df = get_dataframe_for_test("fact_table")
         dq_session = DataQualitySession()
