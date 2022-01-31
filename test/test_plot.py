@@ -34,6 +34,7 @@ class TestPlot(unittest.TestCase):
         test_table.check_column_match_regex("A", regex=FISCALCODE_REGEX)
         test_table.create_html_output(save_in_path=r"test_plot_table_warning.html")
 
+
     def test_plot_session_unique(self):
         df = get_dataframe_for_test("match_regex")
 
