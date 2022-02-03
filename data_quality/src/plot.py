@@ -120,7 +120,8 @@ def plot_table_results(table,
                        consider_warnings: bool = True,
                        filter_only_ko: bool = True,
                        save_in_path: str = None,
-                       show_flag: bool = False):
+                       show_flag: bool = False,
+                       n_max_rows_output: int = None):
     table.calculate_result_info()
     show_warning = table.any_warning(flag_only_fail=filter_only_ko) and consider_warnings
 
@@ -144,12 +145,8 @@ def plot_table_results(table,
     p.min_border_top = 0
     p.min_border_bottom = 0
 
-    if title is not None:
-        pass
-    elif table.output_name is not None:
-        title = table.output_name
-    else:
-        title = table.db_name.split(".")[-1]
+    if title is None:
+        title = table.get_output_name()
 
     p.add_layout(
         Label(x=0.5, y=0.85, text=title,
@@ -168,7 +165,7 @@ def plot_table_results(table,
               text_color="black"))
 
     p.add_layout(
-        Label(x=0.01, y=0.25, text=f"# Setted checks: {_human_format(table.n_checks)}",
+        Label(x=0.01, y=0.25, text=f"# Checks: {_human_format(table.n_checks)}",
               text_font_style="bold",
               text_font_size="15pt",
               text_baseline="middle",
@@ -192,7 +189,7 @@ def plot_table_results(table,
         max_n_problems = min(table.total_number_ko, table.n_rows)
         min_n_problems = table.max_number_ko
         n_problems = min_n_problems
-        text = f"Total number of Problems : {_human_format(table.total_number_ko)}"
+        text = f"Total number of Problems: {_human_format(table.total_number_ko)}"
         if (max_n_problems - min_n_problems) / table.n_rows > 0.01:
             prefix = ">"
         else:
@@ -214,7 +211,7 @@ def plot_table_results(table,
             max_n_warnings = min(table.total_number_warnings, table.n_rows)
             min_n_warnings = table.max_number_warnings
             n_warning = min_n_warnings
-            text = f"Total number of Warnings : {_human_format(n_warning)}"
+            text = f"Total number of Warnings: {_human_format(n_warning)}"
             # if (max_n_warnings - min_n_warnings) / table.n_rows > 0.01:
             #     prefix = ">"
             # else:
@@ -258,6 +255,8 @@ def plot_table_results(table,
 
             if (check.ko_rows is not None) and (check.ko_rows.shape[0] > 0):
                 df_plot = check.ko_rows.drop([TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION, "flag_warning"], axis=1)
+                if n_max_rows_output is not None:
+                    df_plot = df_plot.head(n_max_rows_output)
                 df_plot.replace("", pd.NA, inplace=True)
                 for col in table.datetime_columns:
                     if np.issubdtype(df_plot[col].dtype, np.datetime64):
@@ -332,7 +331,8 @@ def plot_session_results(session,
                          consider_warnings: bool = True,
                          filter_only_ko: bool = True,
                          save_in_path: Optional[str] = None,
-                         show_flag: bool = False):
+                         show_flag: bool = False,
+                         n_max_rows_output: int = None):
     if len(session.tables) == 1:
         session.tables[0].create_html_output(
             title=title,
@@ -340,7 +340,8 @@ def plot_session_results(session,
             consider_warnings=consider_warnings,
             filter_only_ko=filter_only_ko,
             save_in_path=save_in_path,
-            show_flag=show_flag)
+            show_flag=show_flag,
+            n_max_rows_output=n_max_rows_output)
     elif len(session.tables) > 1:
         plots = []
         for table in session.tables:
@@ -348,7 +349,8 @@ def plot_session_results(session,
                                             consider_warnings=consider_warnings,
                                             filter_only_ko=filter_only_ko,
                                             save_in_path=None,
-                                            show_flag=False)
+                                            show_flag=False,
+                                            n_max_rows_output=n_max_rows_output)
             if table.output_name is not None:
                 t = table.output_name
             else:

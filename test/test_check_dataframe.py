@@ -1,5 +1,6 @@
 import unittest
 import logging
+from datetime import datetime
 
 import pandas as pd
 from pandas._testing import assert_frame_equal
@@ -11,6 +12,7 @@ from data_quality.src.utils import FISCALCODE_REGEX
 def get_dataframe_for_test(sheet_name):
     df = pd.read_excel(r"test_df.xlsx", sheet_name=sheet_name)
     return df
+
 
 def check_results(df, table, same_columns=True):
     df1 = df[df["check_description"].notnull()]
@@ -42,7 +44,8 @@ class TestCheckDataframe(unittest.TestCase):
 
         dq_session = DataQualitySession()
         test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
-                                                            index_column="index")
+                                                            index_column="index",
+                                                            output_name="index_null")
         test_table.check_index_not_null()
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -55,7 +58,8 @@ class TestCheckDataframe(unittest.TestCase):
 
         dq_session = DataQualitySession()
         test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
-                                                            index_column="index")
+                                                            index_column="index",
+                                                            output_name="duplicated_index")
         test_table.check_duplicate_index()
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -68,7 +72,8 @@ class TestCheckDataframe(unittest.TestCase):
 
         dq_session = DataQualitySession()
         test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
-                                                            not_empthy_columns="A")
+                                                            not_empthy_columns="A",
+                                                            output_name="not_empthy_column")
         test_table.check_not_empthy_column()
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -82,7 +87,8 @@ class TestCheckDataframe(unittest.TestCase):
         dq_session = DataQualitySession()
         test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
                                                             datetime_columns="A",
-                                                            datetime_formats="%d-%m-%Y")
+                                                            datetime_formats="%d-%m-%Y",
+                                                            output_name="datetime_format1")
         test_table.check_datetime_format()
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -96,7 +102,8 @@ class TestCheckDataframe(unittest.TestCase):
         dq_session = DataQualitySession()
         test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
                                                             datetime_columns="A",
-                                                            datetime_formats="%Y-%m-%d")
+                                                            datetime_formats="%Y-%m-%d",
+                                                            output_name="datetime_format2")
         test_table.check_datetime_format()
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -108,7 +115,8 @@ class TestCheckDataframe(unittest.TestCase):
         df = get_dataframe_for_test("columns_between_values")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="columns_between_values")
         test_table.check_columns_between_values("A", min_value=0, max_value=100, max_included=False)
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -120,7 +128,8 @@ class TestCheckDataframe(unittest.TestCase):
         df = get_dataframe_for_test("columns_between_dates")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="columns_between_dates")
         test_table.check_columns_between_dates("A", min_date="2020-01-01", max_date="2022-01-01")
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -132,7 +141,8 @@ class TestCheckDataframe(unittest.TestCase):
         df = get_dataframe_for_test("dates_order")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="dates_order")
         test_table.check_dates_order(["A", "B", "C", "D"])
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -144,7 +154,8 @@ class TestCheckDataframe(unittest.TestCase):
         df = get_dataframe_for_test("dates_strictly_order")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="dates_strictly_order")
         test_table.check_dates_order(["A", "B", "C", "D"], strictly_ascending=True)
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -156,7 +167,8 @@ class TestCheckDataframe(unittest.TestCase):
         df = get_dataframe_for_test("values_order")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="values_order")
         test_table.check_values_order(["A", "B", "C", "D"])
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -168,7 +180,8 @@ class TestCheckDataframe(unittest.TestCase):
         df = get_dataframe_for_test("values_strictly_order")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="values_strictly_order")
         test_table.check_values_order(["A", "B", "C", "D"], strictly_ascending=True)
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -180,7 +193,8 @@ class TestCheckDataframe(unittest.TestCase):
         df = get_dataframe_for_test("values_in_list_cs")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="values_in_list_cs")
         test_table.check_values_in_list("A", values_list=["a", "b"])
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -191,7 +205,8 @@ class TestCheckDataframe(unittest.TestCase):
         df = get_dataframe_for_test("values_in_list")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="values_in_list")
         test_table.check_values_in_list("A", values_list=["a", "b"], case_sensitive=False)
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -202,7 +217,8 @@ class TestCheckDataframe(unittest.TestCase):
         df = get_dataframe_for_test("match_regex")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="match_regex")
         test_table.check_column_match_regex("A", regex=FISCALCODE_REGEX)
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -213,7 +229,8 @@ class TestCheckDataframe(unittest.TestCase):
         df = get_dataframe_for_test("custom_condition")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="custom_condition")
         test_table.check_custom_condition("A == 3")
         assert_frame_equal(test_table.check_list[0].ko_rows,
                            df[df["check_description"].notnull()],
@@ -225,7 +242,8 @@ class TestCheckDataframe(unittest.TestCase):
         dimension_table = get_dataframe_for_test("dimension_table")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="fact_table")
         dimension_table = dq_session.create_table_from_dataframe(dimension_table, output_name="dimension_table", index_column="id")
         test_table.check_match_dimension_table("dimension_id", dimension_table)
         assert_frame_equal(test_table.check_list[0].ko_rows,
@@ -238,7 +256,8 @@ class TestCheckDataframe(unittest.TestCase):
         dimension_table = get_dataframe_for_test("dimension_table")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="fact_table")
         dimension_table = dq_session.create_table_from_dataframe(dimension_table, output_name="dimension_table", index_column="id")
         test_table.check_match_dimension_table(["dimension_id", "dimension_code"], dimension_table, primary_keys=["id", "code"])
         assert_frame_equal(test_table.check_list[0].ko_rows,
@@ -251,7 +270,8 @@ class TestCheckDataframe(unittest.TestCase):
         dimension_table = get_dataframe_for_test("user_list")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="products")
         dimension_table = dq_session.create_table_from_dataframe(dimension_table, output_name="dimension_table", index_column="id")
         test_table.check_dates_order_dimension_table("user_id", dimension_table, "selling_date", "registration_date", ">=")
         check_results(df, test_table, same_columns=False)
@@ -261,7 +281,8 @@ class TestCheckDataframe(unittest.TestCase):
         dimension_table = get_dataframe_for_test("user_list")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="products2")
         dimension_table = dq_session.create_table_from_dataframe(dimension_table, output_name="dimension_table", index_column="id")
         test_table.check_values_order_dimension_table("user_id", dimension_table, "n_products", "max_products", "<=")
         check_results(df, test_table, same_columns=False)
@@ -272,7 +293,8 @@ class TestCheckDataframe(unittest.TestCase):
 
         dq_session = DataQualitySession()
         df = df[df["user_id"] == 2]
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="period_intersection")
         test_table.check_period_intersection_rows(start_date="subscription_start",
                                                   end_date="subscription_end")
         assert_frame_equal(test_table.check_list[0].ko_rows,
@@ -284,7 +306,8 @@ class TestCheckDataframe(unittest.TestCase):
         df = get_dataframe_for_test("period_intersection")
 
         dq_session = DataQualitySession()
-        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1))
+        test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1),
+                                                            output_name="period_intersection")
         test_table.check_period_intersection_rows(id_columns="user_id",
                                                   start_date="subscription_start",
                                                   end_date="subscription_end")
@@ -297,10 +320,12 @@ class TestCheckDataframe(unittest.TestCase):
         df = get_dataframe_for_test("fact_table")
         dq_session = DataQualitySession()
         test_table = dq_session.create_table_from_dataframe(df.drop(["check_description"], axis=1), index_column="index",
-                                                            not_empthy_columns=["dimension_id"])
+                                                            not_empthy_columns=["dimension_id"],
+                                                            output_name="fact_table")
         test_table.run_basic_check()
         test_table.check_values_in_list("dimension_code", ["a", "b", "c", "d"])
         test_table.get_ko_rows()
+        dq_session.create_export_details_excel("test_excel_session.xlsx")
 
 
 if __name__ == '__main__':

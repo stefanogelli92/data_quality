@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 with open("README.md", "r") as readme_file:
     readme = readme_file.read()
 
-requirements = ["pandas", "valdec", "pydantic", "bokeh"]
+requirements = ["pandas", "valdec", "pydantic", "bokeh", "XlsxWriter"]
 
 setup(
     name="data_quality",

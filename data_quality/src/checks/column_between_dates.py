@@ -12,8 +12,8 @@ class ColumnBetweenDates(Check):
     def __init__(self,
                  table,
                  column_name: str,
-                 min_date: Union[str, date, datetime] = None,
-                 max_date: Union[str, date, datetime] = None,
+                 min_date: Union[str, datetime, date] = None,
+                 max_date: Union[str, datetime, date] = None,
                  min_included: bool = True,
                  max_included: bool = True
                  ):

@@ -5,6 +5,7 @@ from copy import deepcopy
 
 import pandas as pd
 
+from data_quality.src.check import TAG_WARNING_DESCRIPTION
 from data_quality.src.plot import plot_session_results
 from data_quality.src.table import Table
 from data_quality.src.sources import Sources
@@ -23,8 +24,8 @@ class DataQualitySession(object):
 
     def create_table_from_dataframe(self,
                                     df: pd.DataFrame,
+                                    output_name: str,
                                     index_column: str = None,
-                                    output_name: str = None,
                                     not_empthy_columns: Union[List[str], str, None] = None,
                                     datetime_columns: Union[List[str], str, None] = None,
                                     datetime_formats: Union[List[str], str, None] = None,
@@ -61,5 +62,17 @@ class DataQualitySession(object):
 
     @validate
     def create_html_output(self, **kargs):
-
         plot_session_results(self, **kargs)
+
+    @validate
+    def create_export_details_excel(self,
+                                    path: str,
+                                    consider_warnings: bool = True):
+        writer = pd.ExcelWriter(path, engine='xlsxwriter')
+        for table in self.tables:
+            _df = table.get_ko_rows(consider_warnings=consider_warnings)
+            if not table.any_warning(flag_only_fail=False):
+                _df.drop([TAG_WARNING_DESCRIPTION, "flag_warning", "flag_only_warning"], axis=1, inplace=True)
+            _df.to_excel(writer, sheet_name=table.get_output_name(), index=None)
+        writer.save()
+

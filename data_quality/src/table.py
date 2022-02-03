@@ -1,6 +1,6 @@
 from typing import Union, List, Optional, Dict
 from valdec.decorators import validate
-from datetime import date, datetime
+from datetime import datetime, date
 
 import pandas as pd
 
@@ -83,6 +83,13 @@ class Table:
     @validate
     def set_output_name(self, name: Optional[str]):
         self.output_name = name
+
+    def get_output_name(self):
+        if self.output_name is not None:
+            result = self.output_name
+        else:
+            result = self.db_name.split(".")[-1]
+        return result
 
     @validate
     def set_index_column(self, column_name: Optional[str]):
@@ -184,14 +191,15 @@ class Table:
         for check in self.check_list:
             if check.flag_ko:
                 _df = check.ko_rows
-                if check.flag_warning:
-                    _df[TAG_WARNING_DESCRIPTION] = _df[TAG_CHECK_DESCRIPTION]
-                    _df[TAG_CHECK_DESCRIPTION] = None
-                    _df["flag_warning"] = True
-                else:
-                    _df[TAG_WARNING_DESCRIPTION] = None
-                    _df["flag_warning"] = False
-                list_ko_rows.append(_df)
+                if _df is not None:
+                    if check.flag_warning:
+                        _df[TAG_WARNING_DESCRIPTION] = _df[TAG_CHECK_DESCRIPTION]
+                        _df[TAG_CHECK_DESCRIPTION] = None
+                        _df["flag_warning"] = True
+                    else:
+                        _df[TAG_WARNING_DESCRIPTION] = None
+                        _df["flag_warning"] = False
+                    list_ko_rows.append(_df)
 
         drop_columns_list = [TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION, "flag_warning"]
 
@@ -474,8 +482,8 @@ class Table:
     @validate
     def check_columns_between_dates(self,
                                     columns: Union[List[str], str, None],
-                                    min_date: Union[str, date, datetime] = None,
-                                    max_date: Union[str, date, datetime] = None,
+                                    min_date: Union[str, datetime, date] = None,
+                                    max_date: Union[str, datetime, date] = None,
                                     min_included: bool = True,
                                     max_included: bool = True,
                                     ignore_filter: Union[str, None] = None,
@@ -518,7 +526,6 @@ class Table:
                 result[col] = check.check(get_rows_flag=get_rows_flag)
         return result
 
-    @validate
     def check_date_column_not_in_future(self,
                                         column: Union[str, list],
                                         include: bool = True,
@@ -840,7 +847,8 @@ class Table:
                            consider_warnings: bool = True,
                            filter_only_ko: bool = True,
                            save_in_path: str = None,
-                           show_flag: bool = False):
+                           show_flag: bool = False,
+                           n_max_rows_output:int =None):
 
         return plot_table_results(self,
                                   title=title,
@@ -848,4 +856,5 @@ class Table:
                                   consider_warnings=consider_warnings,
                                   filter_only_ko=filter_only_ko,
                                   save_in_path=save_in_path,
-                                  show_flag=show_flag)
+                                  show_flag=show_flag,
+                                  n_max_rows_output=n_max_rows_output)
