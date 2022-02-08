@@ -124,7 +124,9 @@ class Check(ABC):
         df = self.table.source.run_query(query)
         return df
 
-    def check(self, get_rows_flag: bool = False):
+    def check(self, get_rows_flag: Union[bool, None] = None):
+        if get_rows_flag is None:
+            get_rows_flag = self.table.get_rows_flag
         flag_over_max_rows = None
         if self.table.flag_dataframe:
             df_ko = self._get_rows_ko_dataframe()

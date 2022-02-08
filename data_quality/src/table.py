@@ -36,7 +36,8 @@ class Table:
                  datetime_formats: Union[str, list, None] = None,
                  table_filter: str = None,
                  output_columns: Union[List[str], str] = None,
-                 n_max_rows_output: int = None
+                 n_max_rows_output: int = None,
+                 get_rows_flag: Union[bool, None] = None
                  ):
         # Input parameters
         if df is not None:
@@ -58,6 +59,7 @@ class Table:
         self.output_columns = None
         self.set_output_columns(output_columns)
         self.n_max_rows_output = n_max_rows_output
+        self.get_rows_flag = get_rows_flag
 
         # Result parameters
         self.n_rows = None
@@ -279,7 +281,7 @@ class Table:
     def check_index_not_null(self,
                              ignore_filter: Optional[str] = None,
                              columns_not_null: Optional[Union[str, List[str]]] = None,
-                             get_rows_flag: bool = False,
+                             get_rows_flag: Union[bool, None] = None,
                              output_columns: Optional[Union[List[str], str]] = None,
                              flag_warning: bool = False,
                              check_description: Optional[str] = None,
@@ -303,7 +305,7 @@ class Table:
     def check_duplicate_index(self,
                               ignore_filter: Union[str, None] = None,
                               columns_not_null: Union[str, List[str], None] = None,
-                              get_rows_flag: bool = False,
+                              get_rows_flag: Union[bool, None] = None,
                               output_columns: Union[List[str], str, None] = None,
                               flag_warning: bool = False,
                               check_description: Union[List[str], str, None] = None,
@@ -328,7 +330,7 @@ class Table:
                                 columns: Union[str, list] = None,
                                 ignore_filter: Union[str, None] = None,
                                 columns_not_null: Union[str, List[str], None] = None,
-                                get_rows_flag: bool = False,
+                                get_rows_flag: Union[bool, None] = None,
                                 output_columns: Union[List[str], str, None] = None,
                                 flag_warning: bool = False,
                                 check_description: str = None,
@@ -377,7 +379,7 @@ class Table:
                                columns: Union[str, list],
                                ignore_filter: Union[str, None] = None,
                                columns_not_null: Union[str, List[str], None] = None,
-                               get_rows_flag: bool = False,
+                               get_rows_flag: Union[bool, None] = None,
                                output_columns: Union[List[str], str, None] = None,
                                flag_warning: bool = False,
                                check_description: Union[List[str], str, None] = None,
@@ -402,7 +404,7 @@ class Table:
                               datetime_formats: Union[str, list, None] = None,
                               ignore_filter: Union[str, None] = None,
                               columns_not_null: Union[str, List[str], None] = None,
-                              get_rows_flag: bool = False,
+                              get_rows_flag: Union[bool, None] = None,
                               output_columns: Union[List[str], str, None] = None,
                               flag_warning: bool = False,
                               check_description: Union[List[str], str] = None,
@@ -442,7 +444,7 @@ class Table:
                                      max_included: bool = True,
                                      ignore_filter: Union[str, None] = None,
                                      columns_not_null: Union[str, List[str], None] = None,
-                                     get_rows_flag: bool = False,
+                                     get_rows_flag: Union[bool, None] = None,
                                      output_columns: Union[List[str], str, None] = None,
                                      flag_warning: bool = False,
                                      check_description: Union[str, None] = None,
@@ -488,7 +490,7 @@ class Table:
                                     max_included: bool = True,
                                     ignore_filter: Union[str, None] = None,
                                     columns_not_null: Union[str, List[str], None] = None,
-                                    get_rows_flag: bool = False,
+                                    get_rows_flag: Union[bool, None] = None,
                                     output_columns: Union[List[str], str, None] = None,
                                     flag_warning: bool = False,
                                     check_description: Union[str, None] = None,
@@ -531,7 +533,7 @@ class Table:
                                         include: bool = True,
                                         ignore_filter: Union[str, None] = None,
                                         columns_not_null: Union[str, List[str], None] = None,
-                                        get_rows_flag: bool = False,
+                                        get_rows_flag: Union[bool, None] = None,
                                         output_columns: Union[List[str], str, None] = None,
                                         flag_warning: bool = False,
                                         check_description: Union[str, None] = None,
@@ -554,7 +556,7 @@ class Table:
                           strictly_ascending: bool = False,
                           ignore_filter: Union[str, None] = None,
                           columns_not_null: Union[str, List[str], None] = None,
-                          get_rows_flag: bool = False,
+                          get_rows_flag: Union[bool, None] = None,
                           output_columns: Union[List[str], str, None] = None,
                           flag_warning: bool = False,
                           check_description: Union[str, None] = None,
@@ -579,7 +581,7 @@ class Table:
                            strictly_ascending: bool = False,
                            ignore_filter: Union[str, None] = None,
                            columns_not_null: Union[str, List[str], None] = None,
-                           get_rows_flag: bool = False,
+                           get_rows_flag: Union[bool, None] = None,
                            output_columns: Union[List[str], str, None] = None,
                            flag_warning: bool = False,
                            check_description: Union[str, None] = None,
@@ -604,7 +606,7 @@ class Table:
                              case_sensitive: bool = True,
                              ignore_filter: Union[str, None] = None,
                              columns_not_null: Union[str, List[str], None] = None,
-                             get_rows_flag: bool = False,
+                             get_rows_flag: Union[bool, None] = None,
                              output_columns: Union[List[str], str, None] = None,
                              flag_warning: bool = False,
                              check_description: Union[str, None] = None,
@@ -645,7 +647,7 @@ class Table:
                                  ignore_filter: Union[str, None] = None,
                                  columns_not_null: Union[str, List[str], None] = None,
                                  case_sensitive: bool = True,
-                                 get_rows_flag: bool = False,
+                                 get_rows_flag: Union[bool, None] = None,
                                  output_columns: Union[List[str], str, None] = None,
                                  flag_warning: bool = False,
                                  check_description: Union[str, None] = None,
@@ -684,7 +686,7 @@ class Table:
                                ignore_condition: Union[str, None] = None,
                                check_description: Union[str, None] = None,
                                columns_not_null: Union[str, list] = None,
-                               get_rows_flag: bool = False,
+                               get_rows_flag: Union[bool, None] = None,
                                output_columns: Union[List[str], str, None] = None,
                                flag_warning: bool = False,
                                n_max_rows_output: Union[int, None] = None) -> int:
@@ -712,7 +714,7 @@ class Table:
                                     primary_keys: Union[str, list] = None,
                                     ignore_filter: Union[str, None] = None,
                                     columns_not_null: Union[str, List[str], None] = None,
-                                    get_rows_flag: bool = False,
+                                    get_rows_flag: Union[bool, None] = None,
                                     output_columns: Union[List[str], str, None] = None,
                                     check_description: Union[str, None] = None,
                                     flag_warning: bool = False,
@@ -741,7 +743,7 @@ class Table:
                                           primary_keys: Union[str, list] = None,
                                           ignore_filter: Union[str, None] = None,
                                           columns_not_null: Union[str, List[str], None] = None,
-                                          get_rows_flag: bool = False,
+                                          get_rows_flag: Union[bool, None] = None,
                                           output_columns: Union[List[str], str, None] = None,
                                           check_description: Union[str, None] = None,
                                           flag_warning: bool = False,
@@ -783,7 +785,7 @@ class Table:
                                            primary_keys: Union[str, list] = None,
                                            ignore_filter: Union[str, None] = None,
                                            columns_not_null: Union[str, List[str], None] = None,
-                                           get_rows_flag: bool = False,
+                                           get_rows_flag: Union[bool, None] = None,
                                            output_columns: Union[List[str], str, None] = None,
                                            check_description: Union[str, None] = None,
                                            flag_warning: bool = False,
@@ -820,7 +822,7 @@ class Table:
                                        extremes_exclude: bool = False,
                                        ignore_filter: Union[str, None] = None,
                                        columns_not_null: Union[str, List[str], None] = None,
-                                       get_rows_flag: bool = False,
+                                       get_rows_flag: Union[bool, None] = None,
                                        output_columns: Union[List[str], str, None] = None,
                                        flag_warning: bool = False,
                                        check_description: Union[str, None] = None,
@@ -848,7 +850,7 @@ class Table:
                            filter_only_ko: bool = True,
                            save_in_path: str = None,
                            show_flag: bool = False,
-                           n_max_rows_output:int =None):
+                           n_max_rows_output: int =None):
 
         return plot_table_results(self,
                                   title=title,

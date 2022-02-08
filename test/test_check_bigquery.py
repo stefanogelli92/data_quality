@@ -328,13 +328,12 @@ class TestCheckSQL(unittest.TestCase):
     def test_period_intersection_rows2(self):
         db_name = "period_intersection"
         dq_session = DataQualitySession()
-        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery")
+        bigquery = dq_session.create_sources(run_query_bigquery, type_sources="bigquery", get_rows_flag=True)
         test_table = bigquery.create_table(DBBIGQUERY + db_name)
         result_df = get_dataframe_for_test(db_name)
         test_table.check_period_intersection_rows(id_columns="user_id",
                                                   start_date="subscription_start",
-                                                  end_date="subscription_end",
-                                                  get_rows_flag=True)
+                                                  end_date="subscription_end")
         check_results(result_df, test_table)
 
 

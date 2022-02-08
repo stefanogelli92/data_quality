@@ -7,15 +7,14 @@ from data_quality.src.sources_types.bigquery import BigQuery
 from data_quality.src.sources_types.impala import Impala
 from data_quality.src.table import Table
 
-DEFAULT_MAX_ROWS_OUTPUT = 1000
-
 
 class Sources(object):
     def __init__(self,
                  run_query_function: Callable[[str], pd.DataFrame],
                  session,
                  type_sources: str,
-                 n_max_rows_output: Union[int, None] = DEFAULT_MAX_ROWS_OUTPUT):
+                 get_rows_flag: bool = False,
+                 n_max_rows_output: Union[int, None] = None):
         self.run_query_function = run_query_function
         self.session = session
         self.list_source_type = [
@@ -28,6 +27,7 @@ class Sources(object):
         self.datetime_format_replace_dictionary = None
         self.set_source_type(type_sources)
         self.n_max_rows_output = n_max_rows_output
+        self.get_rows_flag = get_rows_flag
 
     def set_source_type(self, type_sources: str):
         list_source_names = [t.name for t in self.list_source_type]
@@ -125,10 +125,13 @@ class Sources(object):
                      datetime_formats: Union[List[str], str] = None,
                      table_filter: str = None,
                      n_max_rows_output: Union[int, None] = None,
-                     output_columns: Union[List[str], str] = None
+                     output_columns: Union[List[str], str] = None,
+                     get_rows_flag: Union[bool, None] = None,
                      ) -> Table:
         if n_max_rows_output is None:
             n_max_rows_output = self.n_max_rows_output
+        if get_rows_flag is None:
+            get_rows_flag = self.get_rows_flag
         table = Table(db_name=name,
                       source=self,
                       index_column=index_column,
@@ -138,7 +141,8 @@ class Sources(object):
                       datetime_columns=datetime_columns,
                       datetime_formats=datetime_formats,
                       output_columns=output_columns,
-                      n_max_rows_output=n_max_rows_output)
+                      n_max_rows_output=n_max_rows_output,
+                      get_rows_flag=get_rows_flag)
         self.session.tables.append(table)
         return table
 

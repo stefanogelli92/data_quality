@@ -275,7 +275,8 @@ def plot_table_results(table,
                                        index_position=None)
                 data_table.visible = False
                 if check.flag_over_max_rows:
-                    show_label = f"Show a max of {check.n_max_rows_output} samples"
+                    max_rows = min(check.n_max_rows_output, n_max_rows_output)
+                    show_label = f"Show a max of {max_rows} samples"
                     hide_label = "Hide samples"
                 else:
                     show_label = "Show details"

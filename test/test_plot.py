@@ -62,8 +62,6 @@ class TestPlot(unittest.TestCase):
         dq_session.create_html_output(save_in_path=r"test_plot_session.html")
 
 
-
-
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     unittest.main()

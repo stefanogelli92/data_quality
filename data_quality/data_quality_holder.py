@@ -10,6 +10,8 @@ from data_quality.src.plot import plot_session_results
 from data_quality.src.table import Table
 from data_quality.src.sources import Sources
 
+DEFAULT_MAX_ROWS_OUTPUT = 1000
+
 
 class DataQualitySession(object):
 
@@ -19,8 +21,14 @@ class DataQualitySession(object):
     def create_sources(self,
                        run_query_function: Callable[[str], pd.DataFrame],
                        type_sources: str = None,
+                       get_rows_flag: bool = False,
+                       n_max_rows_output: int = DEFAULT_MAX_ROWS_OUTPUT
                        ) -> Sources:
-        return Sources(run_query_function, self, type_sources=type_sources)
+        return Sources(run_query_function,
+                       self,
+                       type_sources=type_sources,
+                       get_rows_flag=get_rows_flag,
+                       n_max_rows_output=n_max_rows_output)
 
     def create_table_from_dataframe(self,
                                     df: pd.DataFrame,
