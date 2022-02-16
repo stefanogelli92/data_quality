@@ -1,9 +1,16 @@
-import pandas as pd
-
+from typing import Union, List
 
 FISCALCODE_REGEX = r"(?:[A-Z][AEIOU][AEIOUX]|[B-DF-HJ-NP-TV-Z]{2}[A-Z]){2}(?:[\dLMNP-V]{2}(?:[A-EHLMPR-T](?:[04LQ][1-9MNP-V]|[15MR][\dLMNP-V]|[26NS][0-8LMNP-U])|[DHPS][37PT][0L]|[ACELMRT][37PT][01LM]|[AC-EHLMPR-T][26NS][9V])|(?:[02468LNQSU][048LQU]|[13579MPRTV][26NS])B[26NS][9V])(?:[A-MZ][1-9MNP-V][\dLMNP-V]{2}|[A-M][0L](?:[1-9MNP-V][\dLMNP-V]|[0L][1-9MNP-V]))[A-Z]"
 EMAIL_REGEX = r"""(?:[a-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+\/=?^_`{|}~-]+)*|(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*)@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])"""
 CODICEATECO_REGEX = r"^\d{2}[.]{1}\d{2}[.]{1}[0-9A-Za-z]{1,2}$"
+
+
+TAG_FLAG_ONLY_WARNING = "flag_only_warning"
+TAG_FLAG_WARNING = "flag_warning"
+TAG_CHECK_DESCRIPTION = "check_description"
+TAG_WARNING_DESCRIPTION = "warning_description"
+DEFAULT_CHECK_DESCRIPTION = "Custom condition failed"
+COLUMN_CURRENT_CHECK = "current_check_data_quality"
 
 
 def _human_format(num):
@@ -30,6 +37,17 @@ def _human_format_perc(num):
         magnitude = 1
         num *= 10.0
     return '{}{}'.format('{:.0f}'.format(num), ['%', '‰', '‱'][magnitude])
+
+
+def _uniform_to_list(values: Union[str, List[str], None], default_value: str = None):
+    if (values is None) and (default_value is None):
+        return []
+    elif (values is None) and (default_value is not None):
+        return [default_value]
+    elif isinstance(values, str):
+        return [values]
+    else:
+        return values
 
 
 def _clean_sql_filter(text):

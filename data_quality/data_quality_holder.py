@@ -5,10 +5,10 @@ from copy import deepcopy
 
 import pandas as pd
 
-from data_quality.src.check import TAG_WARNING_DESCRIPTION
 from data_quality.src.plot import plot_session_results
 from data_quality.src.table import Table
 from data_quality.src.sources import Sources
+from data_quality.src.utils import TAG_FLAG_ONLY_WARNING, TAG_FLAG_WARNING, TAG_WARNING_DESCRIPTION
 
 DEFAULT_MAX_ROWS_OUTPUT = 1000
 
@@ -80,7 +80,7 @@ class DataQualitySession(object):
         for table in self.tables:
             _df = table.get_ko_rows(consider_warnings=consider_warnings)
             if not table.any_warning(flag_only_fail=False):
-                _df.drop([TAG_WARNING_DESCRIPTION, "flag_warning", "flag_only_warning"], axis=1, inplace=True)
+                _df.drop([TAG_WARNING_DESCRIPTION, TAG_FLAG_WARNING, TAG_FLAG_ONLY_WARNING], axis=1, inplace=True)
             _df.to_excel(writer, sheet_name=table.get_output_name(), index=None)
         writer.save()
 

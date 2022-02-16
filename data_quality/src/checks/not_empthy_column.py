@@ -9,10 +9,11 @@ class NotEmpthyColumn(Check):
     def __init__(self,
                  table,
                  column_name: str):
-        self.table = table
-        self.check_description = f"Missing value in column {column_name}"
+        super().__init__(table,
+                         f"Missing value in column {column_name}",
+                         [column_name])
+
         self.column_name = column_name
-        self.highlight_columns = [column_name]
 
     def _get_number_ko_sql(self) -> int:
         negative_filter = _create_filter_columns_null(self.column_name)

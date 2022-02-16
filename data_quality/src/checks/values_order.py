@@ -5,7 +5,7 @@ import pandas as pd
 
 from data_quality.src.check import Check
 from data_quality.src.utils import _aggregate_sql_filter, _output_column_to_sql, _query_limit, \
-    _create_filter_columns_not_null
+    _create_filter_columns_not_null, COLUMN_CURRENT_CHECK
 
 TAG_FORMATTED = "_custom_formatted"
 
@@ -17,12 +17,11 @@ class ValuesOrder(Check):
                  ascending_columns: list,
                  strictly_ascending: bool = False
                  ):
-        self.table = table
+        super().__init__(table,
+                         f"""Values {", ".join(ascending_columns)} are not in the correct order""",
+                         ascending_columns)
         self.ascending_columns = ascending_columns
         self.strictly_ascending = strictly_ascending
-        self.highlight_columns = ascending_columns
-
-        self.check_description = "Values {} are not in the correct order".format(", ".join(ascending_columns))
 
     def _create_negative_filter(self):
         filter = "((1=0)"
@@ -104,7 +103,7 @@ class ValuesOrder(Check):
 
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
         df = self.table.df
-        tag_check = "current_check_data_quality"
+        tag_check = COLUMN_CURRENT_CHECK
         df[tag_check] = False
         for col in self.ascending_columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")

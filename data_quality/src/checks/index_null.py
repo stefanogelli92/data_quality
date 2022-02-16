@@ -8,10 +8,10 @@ class IndexNull(Check):
 
     def __init__(self,
                  table):
-        self.table = table
-        self.check_description = "Index null"
+        super().__init__(table,
+                         "Index null",
+                         [table.index_column])
         self.index_column = table.index_column
-        self.highlight_columns = [table.index_column]
 
     def _get_number_ko_sql(self) -> int:
         negative_filter = _create_filter_columns_null(self.index_column)

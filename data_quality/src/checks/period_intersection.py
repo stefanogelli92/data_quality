@@ -19,15 +19,14 @@ class PeriodIntersection(Check):
                  id_columns: Union[str, list, None] = None,
                  extremes_exclude: bool = False
                  ):
-        self.table = table
+        super().__init__(table,
+                         f"Rows intersection on period from {start_date} to {end_date}",
+                         [start_date, end_date])
         self.id_columns = id_columns
         self.start_date = start_date
         self.end_date = end_date
         self.extremes_exclude = extremes_exclude
         self.operator = ">=" if extremes_exclude else ">"
-        self.highlight_columns = [start_date, end_date]
-
-        self.check_description = f"Rows intersection on period from {start_date} to {end_date}"
 
     def _sql_check_previus_query(self):
         if self.id_columns is not None:
@@ -174,8 +173,8 @@ class PeriodIntersection(Check):
                 df[index_column] += _clean_string_float_inf_columns_df(df[col])
 
             df = df.sort_values([index_column, self.start_date])
-            prev_column = "previous_ending_data_quaity"
-            next_column = "next_starting_data_quaity"
+            prev_column = "previous_ending_data_quality"
+            next_column = "next_starting_data_quality"
             df[prev_column] = np.where(df[index_column].shift(1) == df[index_column],
                                        df[self.end_date].shift(1),
                                        None)
@@ -184,8 +183,8 @@ class PeriodIntersection(Check):
                                        None)
         else:
             df = df.sort_values([self.start_date])
-            prev_column = "previous_ending_data_quaity"
-            next_column = "next_starting_data_quaity"
+            prev_column = "previous_ending_data_quality"
+            next_column = "next_starting_data_quality"
             df[prev_column] = df[self.end_date].shift(1)
             df[next_column] = df[self.start_date].shift(-1)
 

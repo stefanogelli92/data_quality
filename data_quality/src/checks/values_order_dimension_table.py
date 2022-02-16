@@ -4,7 +4,7 @@ import pandas as pd
 
 from data_quality.src.check import Check
 from data_quality.src.utils import _create_filter_columns_not_null, _aggregate_sql_filter, _output_column_to_sql, \
-    _query_limit, _clean_string_float_inf_columns_df
+    _query_limit, _clean_string_float_inf_columns_df, _uniform_to_list
 
 
 class ValuesOrderDimensionTable(Check):
@@ -18,29 +18,17 @@ class ValuesOrderDimensionTable(Check):
                  operator: str = "<=",
                  primary_keys: Union[str, list] = None
                  ):
-        self.table = table
-        if isinstance(foreign_keys, str):
-            self.foreign_keys = [foreign_keys]
-        else:
-            self.foreign_keys = foreign_keys
-        if primary_keys is None:
-            self.primary_keys = [dimension_table.index_column]
-        elif isinstance(primary_keys, str):
-            self.primary_keys = [primary_keys]
-        else:
-            self.primary_keys = primary_keys
+        self.foreign_keys = _uniform_to_list(foreign_keys)
+        self.primary_keys = _uniform_to_list(primary_keys, default_value=dimension_table.index_column)
+
+        super().__init__(table,
+                         f"Values {left_column}, {right_column} are not in the correct order",
+                         [left_column])
 
         self.left_column = left_column
-
         self.right_column = right_column
-
         self.operator = self._negate_operator(operator)
-
         self.dimension_table = dimension_table
-
-        self.highlight_columns = [left_column]
-
-        self.check_description = f"Values {left_column}, {right_column} are not in the correct order"
 
     @staticmethod
     def _negate_operator(operator):

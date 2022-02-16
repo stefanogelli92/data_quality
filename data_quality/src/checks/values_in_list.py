@@ -14,14 +14,12 @@ class ValuesInList(Check):
                  values_list: list,
                  case_sensitive: bool = True
                  ):
-        self.table = table
+        super().__init__(table,
+                         f"Value in column {column_name} not admitted",
+                         [column_name])
         self.column_name = column_name
         self.values_list = values_list
         self.case_sensitive = case_sensitive
-        self.highlight_columns = [column_name]
-
-        self.check_description = f"Value in column {column_name} not admitted"
-
 
     def _create_filter(self):
 

@@ -3,7 +3,7 @@ from typing import Union, Optional
 import pandas as pd
 
 from data_quality.src.check import Check
-from data_quality.src.utils import _human_format, _create_filter_columns_not_null
+from data_quality.src.utils import _human_format, _create_filter_columns_not_null, COLUMN_CURRENT_CHECK
 
 
 class ColumnBetweenValues(Check):
@@ -16,15 +16,12 @@ class ColumnBetweenValues(Check):
                  min_included: bool = True,
                  max_included: bool = True
                  ):
-        self.table = table
         self.column_name = column_name
         self.min_value = min_value
         self.max_value = max_value
         self.min_included = min_included
         self.max_included = max_included
-        self.highlight_columns = [column_name]
-
-        self.check_description = self._create_check_description()
+        super().__init__(table, self._create_check_description(), [column_name])
 
     def _create_check_description(self):
         if (self.min_value is not None) and (self.max_value is not None):
@@ -66,7 +63,7 @@ class ColumnBetweenValues(Check):
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
         df = self.table.df
         df = df[df[self.column_name].notnull() & (df[self.column_name].astype(str) != "")]
-        tag_check = "current_check_data_quality"
+        tag_check = COLUMN_CURRENT_CHECK
         df[tag_check] = False
         if self.min_value is not None:
             if self.min_included:

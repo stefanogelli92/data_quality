@@ -5,7 +5,7 @@ import pandas as pd
 
 from data_quality.src.check import Check
 from data_quality.src.utils import _create_filter_columns_not_null, _aggregate_sql_filter, _output_column_to_sql, \
-    _query_limit, _clean_string_float_inf_columns_df
+    _query_limit, _clean_string_float_inf_columns_df, _uniform_to_list
 
 
 class MatchDImensionTable(Check):
@@ -16,23 +16,14 @@ class MatchDImensionTable(Check):
                  dimension_table,
                  primary_keys: Union[str, list] = None
                  ):
-        self.table = table
-        if isinstance(foreign_keys, str):
-            self.foreign_keys = [foreign_keys]
-        else:
-            self.foreign_keys = foreign_keys
-        if primary_keys is None:
-            self.primary_keys = [dimension_table.index_column]
-        elif isinstance(primary_keys, str):
-            self.primary_keys = [primary_keys]
-        else:
-            self.primary_keys = primary_keys
+        self.foreign_keys = _uniform_to_list(foreign_keys)
+        self.primary_keys = _uniform_to_list(primary_keys, default_value=dimension_table.index_column)
+
+        super().__init__(table,
+                         f"Unable to find a match with table {dimension_table.output_name}",
+                         self.foreign_keys)
 
         self.dimension_table = dimension_table
-
-        self.highlight_columns = self.foreign_keys
-
-        self.check_description = f"Unable to find a match with table {dimension_table.output_name}"
 
     def _get_number_ko_sql_dimension_table_sql(self):
         ignore_filters = [_create_filter_columns_not_null(self.foreign_keys),

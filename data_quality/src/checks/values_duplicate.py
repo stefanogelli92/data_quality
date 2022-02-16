@@ -10,10 +10,10 @@ class ValuesDuplicate(Check):
     def __init__(self,
                  table,
                  column_name):
-        self.table = table
-        self.check_description = "Duplicated index"
+        super().__init__(table,
+                         "Duplicated index",
+                         [column_name])
         self.column = column_name
-        self.highlight_columns = [column_name]
 
     def _get_number_ko_sql(self) -> int:
         ignore_filters = [_create_filter_columns_not_null(self.column),
@@ -67,7 +67,7 @@ class ValuesDuplicate(Check):
     def _get_rows_ko_dataframe(self) -> pd.DataFrame:
         df = self.table.df
         df = df[df[self.column].notnull() & (df[self.column].astype(str) != "")]
-        tag_count_index = "n_distinct_index"
+        tag_count_index = "n_distinct_index_data_quality"
         df[tag_count_index] = df.groupby(self.column)[self.column].transform("count")
         df = df[df[tag_count_index] > 1]
         df.drop([tag_count_index], axis=1, inplace=True)

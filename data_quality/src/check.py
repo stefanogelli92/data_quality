@@ -4,22 +4,23 @@ from typing import Union, List
 import pandas as pd
 
 from data_quality.src.utils import _create_filter_columns_not_null, _aggregate_sql_filter, _output_column_to_sql, \
-    _query_limit
-
-TAG_CHECK_DESCRIPTION = "check_description"
-TAG_WARNING_DESCRIPTION = "warning_description"
+    _query_limit, TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION
 
 
 class Check(ABC):
 
-    def __init__(self, table, check_description: str):
+    def __init__(self,
+                 table,
+                 check_description: str,
+                 highlight_columns: List[str] = []):
         self.table = table
         self.check_description = check_description
+        self.highlight_columns = highlight_columns
+
         self.n_max_rows_output = None
         self.ignore_filters = []
         self.columns_not_null = None
         self.output_columns = None
-        self.highlight_columns = []
 
         self.flag_ko = None
         self.n_ko = None

@@ -8,8 +8,8 @@ from data_quality.src.checks.dates_order_dimension_table import DatesOrderDimens
 from data_quality.src.checks.period_intersection import PeriodIntersection
 from data_quality.src.checks.values_order_dimension_table import ValuesOrderDimensionTable
 from data_quality.src.plot import plot_table_results
-from data_quality.src.utils import _clean_sql_filter, _aggregate_sql_filter, _output_column_to_sql, _query_limit
-from data_quality.src.check import TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION
+from data_quality.src.utils import _clean_sql_filter, _aggregate_sql_filter, _output_column_to_sql, _query_limit, \
+    TAG_FLAG_ONLY_WARNING, TAG_FLAG_WARNING, TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION, DEFAULT_CHECK_DESCRIPTION
 from data_quality.src.checks.index_null import IndexNull
 from data_quality.src.checks.values_duplicate import ValuesDuplicate
 from data_quality.src.checks.not_empthy_column import NotEmpthyColumn
@@ -158,7 +158,7 @@ class Table:
             self.number_unique_rows_ko = df.shape[0]
         if not any([a.flag_over_max_rows for a in self.check_list if a.flag_warning]):
             df = self.get_ko_rows(consider_warnings=True)
-            self.number_unique_rows_warning = df[df["flag_only_warning"]].shape[0]
+            self.number_unique_rows_warning = df[df[TAG_FLAG_ONLY_WARNING]].shape[0]
         self.max_number_ko = max([a.n_ko for a in self.check_list if not a.flag_warning], default=0)
         self.max_number_warnings = max([a.n_ko for a in self.check_list if a.flag_warning], default=0)
         self.total_number_ko = sum([a.n_ko for a in self.check_list if not a.flag_warning])
@@ -197,20 +197,20 @@ class Table:
                     if check.flag_warning:
                         _df[TAG_WARNING_DESCRIPTION] = _df[TAG_CHECK_DESCRIPTION]
                         _df[TAG_CHECK_DESCRIPTION] = None
-                        _df["flag_warning"] = True
+                        _df[TAG_FLAG_WARNING] = True
                     else:
                         _df[TAG_WARNING_DESCRIPTION] = None
-                        _df["flag_warning"] = False
+                        _df[TAG_FLAG_WARNING] = False
                     list_ko_rows.append(_df)
 
-        drop_columns_list = [TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION, "flag_warning"]
+        drop_columns_list = [TAG_CHECK_DESCRIPTION, TAG_WARNING_DESCRIPTION, TAG_FLAG_WARNING]
 
         df = pd.concat(list_ko_rows, ignore_index=True)
         column_list = list(df.columns)
         column_list = [a for a in column_list if a not in drop_columns_list]
         df = df.groupby(column_list, dropna=False).agg({TAG_CHECK_DESCRIPTION: set,
                                                         TAG_WARNING_DESCRIPTION: set,
-                                                        "flag_warning": min}).reset_index()
+                                                        TAG_FLAG_WARNING: min}).reset_index()
         df[TAG_CHECK_DESCRIPTION] = df[TAG_CHECK_DESCRIPTION].apply(lambda x: " - ".join([a for a in x if a is not None]))
         df[TAG_WARNING_DESCRIPTION] = df[TAG_WARNING_DESCRIPTION].apply(lambda x: " - ".join([a for a in x if a is not None]))
         if (df.shape[0] > 0) and (self.index_column is not None) and (not self.index_problem):
@@ -221,13 +221,13 @@ class Table:
             df0 = df0.drop_duplicates()
             df1 = df1.groupby(self.index_column, dropna=False).agg({TAG_CHECK_DESCRIPTION: set,
                                                                     TAG_WARNING_DESCRIPTION: set,
-                                                                    "flag_warning": min}).reset_index()
+                                                                    TAG_FLAG_WARNING: min}).reset_index()
             df1[TAG_CHECK_DESCRIPTION] = df1[TAG_CHECK_DESCRIPTION].apply(
                 lambda x: " - ".join([a for a in x if a is not None]))
             df1[TAG_WARNING_DESCRIPTION] = df1[TAG_WARNING_DESCRIPTION].apply(
                 lambda x: " - ".join([a for a in x if a is not None]))
             df = df0.merge(df1, how="left", on=self.index_column)
-        df["flag_only_warning"] = df[TAG_CHECK_DESCRIPTION].str.len() == 0
+        df[TAG_FLAG_ONLY_WARNING] = df[TAG_CHECK_DESCRIPTION].str.len() == 0
         self.ko_rows = df
         return
 
@@ -240,7 +240,7 @@ class Table:
         df = self.ko_rows.copy()
         if not consider_warnings:
             df.drop([TAG_WARNING_DESCRIPTION], axis=1, inplace=True)
-            df = df[~df["flag_only_warning"]]
+            df = df[~df[TAG_FLAG_ONLY_WARNING]]
         if output_columns is not None:
             df.drop([col for col in df.columns if col in output_columns], axis=1, inplace=True)
         return df
@@ -693,7 +693,7 @@ class Table:
 
         negative_condition = _clean_sql_filter(negative_condition)
         if check_description is None:
-            check_description = "Custom condition failed"
+            check_description = DEFAULT_CHECK_DESCRIPTION
         check = Custom(
             self,
             negative_filter=negative_condition,

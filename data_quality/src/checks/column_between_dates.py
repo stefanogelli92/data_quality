@@ -4,7 +4,7 @@ from datetime import date, datetime
 import pandas as pd
 
 from data_quality.src.check import Check
-from data_quality.src.utils import _create_filter_columns_not_null
+from data_quality.src.utils import _create_filter_columns_not_null, COLUMN_CURRENT_CHECK
 
 
 class ColumnBetweenDates(Check):
@@ -17,15 +17,15 @@ class ColumnBetweenDates(Check):
                  min_included: bool = True,
                  max_included: bool = True
                  ):
-        self.table = table
         self.column_name = column_name
         self.min_date = pd.to_datetime(min_date)
         self.max_date = pd.to_datetime(max_date)
         self.min_included = min_included
         self.max_included = max_included
-        self.highlight_columns = [column_name]
 
-        self.check_description = self._create_check_description()
+        super().__init__(table,
+                         self._create_check_description(),
+                         [column_name])
 
     def _create_check_description(self):
         min_date = self.min_date.strftime("%Y-%m-%d") if self.min_date is not None else None
@@ -76,7 +76,7 @@ class ColumnBetweenDates(Check):
         df = df[df[self.column_name].notnull() & (df[self.column_name].astype(str) != "")]
         a = pd.to_datetime(df[self.column_name], errors="coerce")
         df = df[a.notnull()]
-        tag_check = "current_check_data_quality"
+        tag_check = COLUMN_CURRENT_CHECK
         df[tag_check] = False
         if self.min_date is not None:
             if self.min_included:
